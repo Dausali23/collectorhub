@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "436919223526",
+    "project_id": "collectorhub-f6fc7",
+    "storage_bucket": "collectorhub-f6fc7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:436919223526:android:b4b547ae48d1cb2c72a727",
+        "android_client_info": {
+          "package_name": "com.example.collectorhub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUkmx0MqoeyIn1sxo4xZO_Xsh1I94hh98"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
