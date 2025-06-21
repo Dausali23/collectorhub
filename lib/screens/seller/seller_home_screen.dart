@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import 'add_listing_screen.dart';
+import '../../utils/image_utils.dart';
 
 class SellerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -562,21 +563,11 @@ class _SellerHomeScreenState extends State<SellerHomeScreen> {
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
                   ),
-                  child: Image.network(
+                  child: ImageUtils.getImageWidget(
                     'https://picsum.photos/id/${100 + imageIndex}/200/200',
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey.shade300,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: Colors.grey.shade500,
-                        ),
-                      );
-                    },
                   ),
                 ),
                 // Edit button

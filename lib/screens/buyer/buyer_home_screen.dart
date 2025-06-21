@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../models/user_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as developer;
+import '../../models/user_model.dart';
+import '../../models/listing_model.dart';
+import '../../utils/image_utils.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -11,568 +15,797 @@ class BuyerHomeScreen extends StatefulWidget {
 }
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkImagesInFirestore();
+  }
+
+  // Function to check if image URLs are valid
+  Future<void> _checkImagesInFirestore() async {
+    try {
+      final listingsSnapshot = await _firestore
+          .collection('listings')
+          .where('isAvailable', isEqualTo: true)
+          .limit(5)
+          .get();
+          
+      for (var doc in listingsSnapshot.docs) {
+        final data = doc.data();
+        if (data.containsKey('images')) {
+          final images = data['images'] as List<dynamic>?;
+          if (images != null && images.isNotEmpty) {
+            final url = images.first.toString();
+            developer.log('Checking image URL: $url');
+            
+            if (url.isEmpty) {
+              developer.log('Empty image URL found for listing ${doc.id}');
+              continue;
+            }
+            
+            // Check if URL is correctly formatted
+            final formattedUrl = ImageUtils.formatImageUrl(url);
+            developer.log('Formatted URL: $formattedUrl');
+            
+            // Validate the URL
+            final isValid = await ImageUtils.isImageUrlValid(formattedUrl);
+            developer.log('URL is ${isValid ? 'valid' : 'invalid'}: $formattedUrl');
+          } else {
+            developer.log('Empty images array for listing ${doc.id}');
+          }
+        } else {
+          developer.log('No images field found for listing ${doc.id}');
+        }
+      }
+    } catch (e) {
+      developer.log('Error checking Firestore images: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.deepPurple.shade900,
+      backgroundColor: Colors.grey.shade100,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // App Bar
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.deepPurple.shade400,
-                            shape: BoxShape.circle,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
+            return Future.delayed(const Duration(milliseconds: 1500));
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // App Bar
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.shade400,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.collections_bookmark,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.collections_bookmark,
-                            color: Colors.white,
-                            size: 24,
+                          const SizedBox(width: 8),
+                          const Text(
+                            'CollectorHub',
+                            style: TextStyle(
+                              color: Colors.deepPurple,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'CollectorHub',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.search, color: Colors.deepPurple),
+                            onPressed: () {},
                           ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.search, color: Colors.white),
-                          onPressed: () {},
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.notifications_none, color: Colors.white),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Upcoming Streams Title
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  'Upcoming Streams',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                          IconButton(
+                            icon: const Icon(Icons.notifications_none, color: Colors.deepPurple),
+                            onPressed: () {},
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              
-              // Upcoming Streams Cards
-              SizedBox(
-                height: 240,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 3,
-                  itemBuilder: (context, index) {
-                    List<String> titles = [
-                      'Comic & Manga Saturday Night Live',
-                      'Comic & Manga Sunday Night Live',
-                      'Slabs, Signed Comics, Variants'
-                    ];
-                    List<String> hosts = ['gilbertk', 'gilbertk', 'hadjia'];
-                    List<String> times = ['21:00', 'Tomorrow 21:00', 'Tomorrow 19:00'];
+                
+                // Featured Collectibles
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Featured Collectibles',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                
+                // Featured Collectibles Stream
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                    .collection('listings')
+                    .where('isAvailable', isEqualTo: true)
+                    .limit(5)
+                    .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text('Error loading collectibles'),
+                      );
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    final docs = snapshot.data?.docs ?? [];
                     
-                    return _buildStreamCard(
-                      title: titles[index],
-                      host: hosts[index],
-                      time: times[index],
-                      category: 'Comic & Manga',
+                    // Check if there are no items
+                    if (docs.isEmpty) {
+                      return Container(
+                        height: 200,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.collections, size: 50, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No collectibles available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Be the first to add an item!',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return SizedBox(
+                      height: 240,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final listing = ListingModel.fromFirestore(docs[index]);
+                          return _buildFeaturedCard(listing);
+                        },
+                      ),
                     );
-                  },
+                  }
                 ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Ranks and Bidders
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: _buildRankCard(),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: _buildTopBidderCard(),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Featured Livestreams
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  'Featured Livestreams',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                
+                const SizedBox(height: 16),
+                
+                // Auction section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Live Auctions',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('View All'),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              
-              // Live Stream Cards
-              SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 2,
-                  itemBuilder: (context, index) {
-                    return _buildLivestreamCard(
-                      viewerCount: index == 0 ? 152 : 186,
+                
+                // Live Auction Stream
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                    .collection('listings')
+                    .where('isAvailable', isEqualTo: true)
+                    .where('isFixedPrice', isEqualTo: false)
+                    .orderBy('createdAt', descending: true)
+                    .limit(10)
+                    .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Text('Error loading auctions');
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    final auctions = snapshot.data?.docs ?? [];
+                    
+                    // Check if no auctions are available
+                    if (auctions.isEmpty) {
+                      return Container(
+                        height: 200,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.gavel, size: 50, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No auctions available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Check back later for upcoming auctions',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: auctions.length,
+                        itemBuilder: (context, index) {
+                          final listing = ListingModel.fromFirestore(auctions[index]);
+                          return _buildAuctionCard(listing);
+                        },
+                      ),
                     );
-                  },
+                  }
                 ),
-              ),
-              
-              const SizedBox(height: 40),
-            ],
+                
+                const SizedBox(height: 16),
+                
+                // Categories section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Browse Categories',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('View All'),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Categories Grid
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    children: [
+                      _buildCategoryCard('Trading Cards', Icons.style),
+                      _buildCategoryCard('Comics', Icons.book),
+                      _buildCategoryCard('Toys', Icons.toys),
+                      _buildCategoryCard('Figures', Icons.sports_handball),
+                      _buildCategoryCard('Memorabilia', Icons.stars),
+                      _buildCategoryCard('Other', Icons.category),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Recent Listings
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Recent Listings',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('View All'),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Recent Listings Stream
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                    .collection('listings')
+                    .where('isAvailable', isEqualTo: true)
+                    .limit(6)
+                    .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text('Error loading listings'),
+                        ),
+                      );
+                    }
+                    
+                    final documents = snapshot.data?.docs ?? [];
+                    if (documents.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text('No recent listings'),
+                        ),
+                      );
+                    }
+                    
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                        ),
+                        itemCount: documents.length,
+                        itemBuilder: (context, index) {
+                          final listing = ListingModel.fromFirestore(documents[index]);
+                          return _buildRecentListingCard(listing);
+                        },
+                      ),
+                    );
+                  }
+                ),
+                
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
   
-  Widget _buildStreamCard({
-    required String title,
-    required String host,
-    required String time,
-    required String category,
-  }) {
-    return Container(
-      width: 180,
-      margin: const EdgeInsets.only(left: 4, right: 4, bottom: 8),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade800,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Stack(
-        children: [
-          // Background image
-          Positioned.fill(
-            child: Image.network(
-              'https://picsum.photos/id/${100 + title.length}/300/400',
-              fit: BoxFit.cover,
-              color: Colors.black.withAlpha(77),
-              colorBlendMode: BlendMode.darken,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(color: Colors.deepPurple.shade400);
-              },
+  Widget _buildFeaturedCard(ListingModel listing) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to item details
+      },
+      child: Container(
+        width: 180,
+        margin: const EdgeInsets.only(left: 4, right: 4, bottom: 8, top: 8),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(51),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-          ),
-          
-          // Time overlay
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withAlpha(153),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            Expanded(
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    color: Colors.white,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    time,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                child: listing.images.isNotEmpty
+                    ? ImageUtils.getImageWidget(
+                        ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image,
+                            color: Colors.grey,
+                            size: 40,
+                          ),
+                        ),
+                      ),
               ),
             ),
-          ),
-          
-          // Bottom info
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withAlpha(204),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
+            
+            // Info
+            Padding(
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    listing.title,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    host,
-                    style: const TextStyle(
-                      color: Colors.grey,
+                    listing.category,
+                    style: TextStyle(
+                      color: Colors.deepPurple.shade400,
                       fontSize: 12,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
-                    category,
-                    style: TextStyle(
-                      color: Colors.deepPurple.shade200,
-                      fontSize: 11,
+                    "RM ${listing.price.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildRankCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha(102),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Top Collectors',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildRankRow(
-            rank: 1,
-            name: 'jasonwong',
-            points: 1250,
-          ),
-          const SizedBox(height: 8),
-          _buildRankRow(
-            rank: 2,
-            name: 'mikelee',
-            points: 1180,
-          ),
-          const SizedBox(height: 8),
-          _buildRankRow(
-            rank: 3,
-            name: 'sarahjane',
-            points: 950,
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildRankRow({
-    required int rank,
-    required String name,
-    required int points,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 22,
-          height: 22,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: rank == 1
-                ? Colors.amber
-                : rank == 2
-                    ? Colors.grey.shade300
-                    : Colors.brown.shade300,
-            shape: BoxShape.circle,
-          ),
-          child: Text(
-            rank.toString(),
-            style: TextStyle(
-              color: rank == 1 ? Colors.black : Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
+          ],
         ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$points pts',
-          style: const TextStyle(
-            color: Colors.deepPurple,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildTopBidderCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withAlpha(102),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Top Bidder',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 12),
-          Text(
-            'robertsim',
-            style: TextStyle(
-              color: Colors.amber,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            '32 won auctions',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 12,
-            ),
-          ),
-        ],
       ),
     );
   }
   
-  Widget _buildLivestreamCard({required int viewerCount}) {
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade800,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(77),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Thumbnail image
-          Positioned.fill(
-            child: Image.network(
-              'https://picsum.photos/id/${200 + viewerCount}/500/300',
-              fit: BoxFit.cover,
-              color: Colors.black.withAlpha(51),
-              colorBlendMode: BlendMode.darken,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(color: Colors.deepPurple.shade500);
-              },
+  Widget _buildAuctionCard(ListingModel listing) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to auction details
+      },
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(51),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-          ),
-          
-          // Live indicator and viewer count
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(4),
-              ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Live tag
+            Container(
+              color: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
               child: const Text(
-                'LIVE',
+                'LIVE AUCTION',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 10,
                 ),
               ),
             ),
-          ),
-          
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withAlpha(153),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.visibility,
-                    color: Colors.white,
-                    size: 12,
-                  ),
-                  const SizedBox(width: 2),
-                  Text(
-                    viewerCount.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+            
+            // Image
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: listing.images.isNotEmpty
+                    ? ImageUtils.getImageWidget(
+                        ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 40,
+                              color: Colors.grey.shade500,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'No image',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
               ),
             ),
-          ),
-          
-          // Stream info
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black,
-                    Colors.black.withAlpha(153),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.4, 0.8, 1.0],
-                ),
-              ),
+            
+            // Price
+            Padding(
+              padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Massive Comic Collection Unboxing',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Text(
+                    listing.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 10,
-                        backgroundColor: Colors.deepPurple,
-                        child: Icon(
-                          Icons.person,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Flexible(
-                        child: Text(
-                          'comicmaster42',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
-                          'Watch',
-                          style: TextStyle(fontSize: 11),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    "RM ${listing.price.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildCategoryCard(String title, IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to category page
+      },
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.deepPurple.shade100,
+              radius: 25,
+              child: Icon(
+                icon,
+                color: Colors.deepPurple,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildRecentListingCard(ListingModel listing) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to item details
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(51),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          height: 215,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image with sale/auction badge
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    child: listing.images.isNotEmpty
+                        ? ImageUtils.getImageWidget(
+                            ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          )
+                        : Container(
+                            color: Colors.grey.shade200,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  size: 40,
+                                  color: Colors.grey.shade500,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Image error',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 2,
+                        horizontal: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: listing.isFixedPrice ? Colors.blue : Colors.red,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        listing.isFixedPrice ? 'SALE' : 'AUCTION',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      listing.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 8,
+                          backgroundColor: Colors.deepPurple.shade300,
+                          child: const Text(
+                            'S',
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            listing.sellerName,
+                            style: const TextStyle(fontSize: 10),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ListingModel.conditionToString(listing.condition),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      "RM ${listing.price.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

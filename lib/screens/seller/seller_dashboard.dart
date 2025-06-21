@@ -48,43 +48,11 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
       );
     }
 
-    // Handle base64 images
-    if (ImageUtils.isBase64Image(imageUrl)) {
-      return ImageUtils.base64ToImageWidget(
-        imageUrl,
-        width: width,
-        height: height,
-        fit: fit,
-      );
-    }
-
-    // Handle regular network images
-    return Image.network(
+    return ImageUtils.getImageWidget(
       imageUrl,
-      fit: fit,
       width: width,
       height: height,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[200],
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          width: width,
-          height: height,
-          color: Colors.grey[300],
-          child: const Center(
-            child: Icon(Icons.image, size: 64, color: Colors.grey),
-          ),
-        );
-      },
+      fit: fit,
     );
   }
 
