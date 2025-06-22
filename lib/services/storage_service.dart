@@ -7,10 +7,10 @@ import 'dart:developer' as developer;
 class StorageService {
   final _uuid = const Uuid();
 
-  // Convert an image file to base64 string
-  Future<String> uploadImage(File imageFile) async {
+  // Convert an image file to base64 string with optional folder parameter
+  Future<String> uploadImage(File imageFile, [String folder = 'listings']) async {
     try {
-      developer.log('Converting image to base64');
+      developer.log('Converting image to base64 for folder: $folder');
       
       // Read file as bytes
       final List<int> imageBytes = await imageFile.readAsBytes();
@@ -33,7 +33,7 @@ class StorageService {
       // For base64 images, we'll use a URL format that indicates it's base64
       // This isn't a real URL but a marker for your app to understand it's a base64 image
       final String fileName = '${_uuid.v4()}_${path.basename(imageFile.path)}';
-      final String base64Url = 'base64://$fileName;$base64Image';
+      final String base64Url = 'base64://$folder/$fileName;$base64Image';
       
       return base64Url;
     } catch (e) {
@@ -43,7 +43,7 @@ class StorageService {
   }
 
   // Upload multiple images and return list of base64 data
-  Future<List<String>> uploadImages(List<File> imageFiles) async {
+  Future<List<String>> uploadImages(List<File> imageFiles, [String folder = 'listings']) async {
     try {
       // Check if there are actually images to upload
       if (imageFiles.isEmpty) {
@@ -58,7 +58,7 @@ class StorageService {
       for (int i = 0; i < imageFiles.length; i++) {
         try {
           developer.log('Processing image ${i + 1} of ${imageFiles.length}');
-          final String base64Data = await uploadImage(imageFiles[i]);
+          final String base64Data = await uploadImage(imageFiles[i], folder);
           base64Images.add(base64Data);
           developer.log('Successfully processed image ${i + 1}');
         } catch (e) {

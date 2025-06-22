@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/listing_model.dart';
 import '../models/user_model.dart';
+import '../models/auction_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -91,6 +92,65 @@ class FirestoreService {
     });
   }
   
+  // Add a new auction with custom parameters
+  Future<String> createAuction({
+    required String title,
+    required String description,
+    required String sellerId,
+    required String sellerName,
+    required double startingPrice,
+    required double bidIncrement,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String category,
+    required String subcategory,
+    required CollectibleCondition condition,
+    required List<String> images,
+  }) async {
+    try {
+      // First create the listing with isFixedPrice set to false
+      ListingModel listing = ListingModel(
+        sellerId: sellerId,
+        sellerName: sellerName,
+        title: title,
+        description: description,
+        price: startingPrice,
+        category: category,
+        subcategory: subcategory,
+        condition: condition,
+        images: images,
+        isFixedPrice: false,
+        createdAt: DateTime.now(),
+      );
+      
+      // Add the listing to Firestore
+      DocumentReference listingRef = await _listingsCollection.add(listing.toMap());
+      String listingId = listingRef.id;
+      
+      // Create the auction with custom parameters
+      AuctionModel auction = AuctionModel(
+        listingId: listingId,
+        sellerId: sellerId,
+        sellerName: sellerName,
+        startingPrice: startingPrice,
+        currentPrice: startingPrice,
+        bidIncrement: bidIncrement,
+        startTime: startTime,
+        endTime: endTime,
+        status: startTime.isAfter(DateTime.now()) ? AuctionStatus.pending : AuctionStatus.active,
+        bidCount: 0,
+      );
+      
+      // Save the auction to Firestore
+      await _auctionsCollection.doc(listingId).set(auction.toMap());
+      
+      return listingId;
+    } catch (e) {
+      print('Error creating auction: $e');
+      rethrow;
+    }
+  }
+  
   // Update an existing listing
   Future<void> updateListing(ListingModel listing) async {
     if (listing.id == null) {
@@ -112,6 +172,20 @@ class FirestoreService {
       }
     } catch (e) {
       print('Error updating listing: $e');
+      rethrow;
+    }
+  }
+  
+  // Update an existing auction
+  Future<void> updateAuction(AuctionModel auction) async {
+    if (auction.id == null) {
+      throw ArgumentError('Auction ID cannot be null for updates');
+    }
+    
+    try {
+      await _auctionsCollection.doc(auction.id).update(auction.toMap());
+    } catch (e) {
+      print('Error updating auction: $e');
       rethrow;
     }
   }
@@ -239,6 +313,110 @@ class FirestoreService {
       isFixedPrice: true,
       onlyAvailable: true,
     );
+  }
+
+  // Get a specific auction by ID
+  Future<AuctionModel?> getAuction(String auctionId) async {
+    try {
+      DocumentSnapshot doc = await _auctionsCollection.doc(auctionId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      return AuctionModel.fromFirestore(doc);
+    } catch (e) {
+      print('Error getting auction: $e');
+      rethrow;
+    }
+  }
+  
+  // Get all auctions with filters
+  Stream<List<AuctionModel>> getAuctions({
+    String? sellerId,
+    AuctionStatus? status,
+  }) {
+    Query query = _auctionsCollection;
+    
+    if (sellerId != null) {
+      query = query.where('sellerId', isEqualTo: sellerId);
+    }
+    
+    if (status != null) {
+      query = query.where('status', isEqualTo: AuctionModel.statusToString(status));
+    }
+    
+    return query
+        .orderBy('endTime')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => AuctionModel.fromFirestore(doc))
+            .toList());
+  }
+  
+  // Get active auctions
+  Stream<List<AuctionModel>> getActiveAuctions({String? sellerId}) {
+    return getAuctions(
+      sellerId: sellerId,
+      status: AuctionStatus.active,
+    );
+  }
+  
+  // Get pending auctions
+  Stream<List<AuctionModel>> getPendingAuctions({String? sellerId}) {
+    return getAuctions(
+      sellerId: sellerId,
+      status: AuctionStatus.pending,
+    );
+  }
+  
+  // Place a bid on an auction
+  Future<void> placeBid(String auctionId, String bidderId, String bidderName, double bidAmount) async {
+    try {
+      // Get the current auction state
+      DocumentSnapshot auctionDoc = await _auctionsCollection.doc(auctionId).get();
+      if (!auctionDoc.exists) {
+        throw Exception('Auction not found');
+      }
+      
+      AuctionModel auction = AuctionModel.fromFirestore(auctionDoc);
+      
+      // Validate the bid
+      if (auction.status != AuctionStatus.active) {
+        throw Exception('Auction is not active');
+      }
+      
+      if (bidAmount <= auction.currentPrice) {
+        throw Exception('Bid amount must be higher than current price');
+      }
+      
+      if ((bidAmount - auction.currentPrice) < auction.bidIncrement) {
+        throw Exception('Bid increment must be at least ${auction.bidIncrement}');
+      }
+      
+      // Use a transaction to ensure data consistency
+      await _firestore.runTransaction((transaction) async {
+        // Record the bid
+        DocumentReference bidRef = _bidsCollection.doc();
+        transaction.set(bidRef, {
+          'auctionId': auctionId,
+          'listingId': auction.listingId,
+          'bidderId': bidderId,
+          'bidderName': bidderName,
+          'amount': bidAmount,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+        
+        // Update the auction
+        transaction.update(_auctionsCollection.doc(auctionId), {
+          'currentPrice': bidAmount,
+          'bidCount': FieldValue.increment(1),
+          'topBidderId': bidderId,
+          'topBidderName': bidderName,
+        });
+      });
+    } catch (e) {
+      print('Error placing bid: $e');
+      rethrow;
+    }
   }
 
   // Get recommended listings based on user preferences (rule-based)
