@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
 
@@ -24,38 +24,51 @@ class ImageUtils {
     return parts[1];
   }
   
+  // Worker function to decode base64 in a separate isolate
+  static Uint8List _decodeBase64Isolate(String base64Data) {
+    return base64Decode(base64Data);
+  }
+  
   // Convert base64 string to Image widget
   static Widget base64ToImageWidget(String url, {
     double? width, 
     double? height, 
     BoxFit fit = BoxFit.cover
   }) {
-    try {
-      final base64Data = extractBase64Data(url);
-      if (base64Data == null || base64Data.isEmpty) {
-        developer.log('Empty base64 data from URL: $url');
-        return const Icon(Icons.broken_image, size: 50);
-      }
-      
-      // For debugging
-      developer.log('Attempting to decode base64 data of length: ${base64Data.length}');
-      
-      Uint8List bytes = base64Decode(base64Data);
-      return Image.memory(
-        bytes,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) {
-          developer.log('Error rendering base64 image: $error');
-          return const Icon(Icons.broken_image, size: 50);
-        },
-      );
-    } catch (e) {
-      developer.log('Error decoding base64 image: $e');
-      developer.log('URL: $url');
+    final base64Data = extractBase64Data(url);
+    if (base64Data == null || base64Data.isEmpty) {
+      developer.log('Empty base64 data from URL: $url');
       return const Icon(Icons.broken_image, size: 50);
     }
+    
+    // For debugging
+    developer.log('Attempting to decode base64 data of length: ${base64Data.length}');
+    
+    // Use FutureBuilder with compute to process in background
+    return FutureBuilder<Uint8List>(
+      future: compute(_decodeBase64Isolate, base64Data),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          developer.log('Error decoding base64 image: ${snapshot.error}');
+          return const Icon(Icons.broken_image, size: 50);
+        } else if (snapshot.hasData) {
+          return Image.memory(
+            snapshot.data!,
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (context, error, stackTrace) {
+              developer.log('Error rendering base64 image: $error');
+              return const Icon(Icons.broken_image, size: 50);
+            },
+          );
+        } else {
+          return const Icon(Icons.broken_image, size: 50);
+        }
+      },
+    );
   }
   
   // Get image widget from URL (handles both remote URLs and base64 images)
@@ -67,12 +80,14 @@ class ImageUtils {
     if (isBase64Image(url)) {
       return base64ToImageWidget(url, width: width, height: height, fit: fit);
     } else {
-      // Regular network image
+      // Regular network image with caching
       return Image.network(
         url,
         width: width,
         height: height,
         fit: fit,
+        cacheWidth: width?.toInt(), // Enable memory efficient loading
+        cacheHeight: height?.toInt(),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Center(

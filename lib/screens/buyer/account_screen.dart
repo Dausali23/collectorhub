@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../edit_profile_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AccountScreen extends StatefulWidget {
   final UserModel user;
@@ -13,265 +15,367 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   final AuthService _auth = AuthService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isLoading = false;
+  UserModel? _refreshedUser;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Load the most current user data
+    _refreshUserData();
+  }
+  
+  Future<void> _refreshUserData() async {
+    try {
+      // Get fresh user data from Firestore
+      final userDoc = await _firestore.collection('users').doc(widget.user.uid).get();
+      
+      if (userDoc.exists && mounted) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _refreshedUser = UserModel(
+            uid: widget.user.uid,
+            email: widget.user.email,
+            role: widget.user.role,
+            displayName: userData['displayName'] ?? widget.user.displayName,
+            phoneNumber: userData['phoneNumber'], // Get the phone number directly from Firestore
+            photoUrl: widget.user.photoUrl,
+          );
+        });
+      }
+    } catch (e) {
+      // If there's an error, we'll use the original user model
+      print('Error refreshing user data: $e');
+    }
+  }
+
+  void _navigateToEditProfile() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(user: _refreshedUser ?? widget.user),
+      ),
+    );
+    
+    if (result == true) {
+      // If profile was updated, refresh the UI
+      _refreshUserData();
+    }
+  }
+
+  Future<void> _logout() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+      try {
+    await _auth.signOut();
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing out: $e')),
+      );
+    }
+  } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Use the refreshed user data if available, otherwise use the original
+    final UserModel userToDisplay = _refreshedUser ?? widget.user;
+    
     return Scaffold(
-      backgroundColor: Colors.black87,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('Account'),
+        title: const Text('My Profile'),
         centerTitle: true,
-        elevation: 0,
+        backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // User profile header
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.deepPurple,
-                    backgroundImage: widget.user.photoUrl != null
-                        ? NetworkImage(widget.user.photoUrl!)
-                        : null,
-                    child: widget.user.photoUrl == null
-                        ? const Icon(Icons.person, size: 30, color: Colors.white)
-                        : null,
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Profile header with edit button
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: Colors.deepPurple,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hi, ${widget.user.displayName ?? widget.user.email.split('@')[0]}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const CircleAvatar(
-                              radius: 10,
-                              backgroundColor: Colors.amber,
-                              child: Icon(Icons.person, size: 10, color: Colors.white),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '2 Followers',
-                              style: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                ),
+                child: Column(
+                  children: [
+                    // Profile picture
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white,
+                      backgroundImage: userToDisplay.photoUrl != null
+                          ? NetworkImage(userToDisplay.photoUrl!)
+                          : null,
+                      child: userToDisplay.photoUrl == null
+                          ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                          : null,
                     ),
+                    const SizedBox(height: 12),
+                    
+                    // User name
+                    Text(
+                      userToDisplay.displayName ?? 'Collector',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    
+                    // User email
+                    Text(
+                      userToDisplay.email,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withAlpha(200),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Edit profile button
+                    ElevatedButton.icon(
+                      onPressed: _navigateToEditProfile,
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Edit Profile'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Account details card
+              _buildCard(
+                title: 'Account Details',
+                children: [
+                  _buildDetailItem(
+                    icon: Icons.phone,
+                    title: 'Phone',
+                    value: userToDisplay.phoneNumber ?? 'Not set',
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right, color: Colors.white),
-                    onPressed: () {},
+                  _buildDetailItem(
+                    icon: Icons.person,
+                    title: 'Role',
+                    value: userToDisplay.role.toString().split('.').last.toUpperCase(),
                   ),
                 ],
               ),
-            ),
-            
-            // Invite friends card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.deepPurple,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
+              
+              const SizedBox(height: 16),
+              
+              // Settings and options
+              _buildCard(
+                title: 'Settings & Options',
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(51),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.card_giftcard,
-                      color: Colors.white,
-                    ),
+                  _buildActionItem(
+                    icon: Icons.settings,
+                    title: 'App Settings',
+                    onTap: () {
+                      // Navigate to app settings
+                    },
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Invite Your Friends',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          'Earn credits when they sign up and make a purchase',
-                          style: TextStyle(
-                            color: Colors.white.withAlpha(204),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _buildActionItem(
+                    icon: Icons.help_outline,
+                    title: 'Help & Support',
+                    onTap: () {
+                      // Navigate to help & support
+                    },
+                  ),
+                  _buildActionItem(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Privacy Policy',
+                    onTap: () {
+                      // Show privacy policy
+                    },
                   ),
                 ],
               ),
-            ),
-            
-            // Seller Dashboard section
-            _buildSectionHeader('Seller Dashboard'),
-            _buildLinkItem(
-              icon: Icons.store,
-              title: 'Become a Seller',
-              onTap: () {},
-            ),
-            
-            // Account section
-            _buildSectionHeader('Account'),
-            _buildLinkItem(
-              icon: Icons.credit_card,
-              title: 'Payment Methods',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.local_shipping,
-              title: 'Delivery Address',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.redeem,
-              title: 'Redeem Code',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.login,
-              title: 'Account Login',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.block,
-              title: 'Blocked Users',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.logout,
-              title: 'Logout',
-              onTap: () async {
-                await _auth.signOut();
-              },
-            ),
-            
-            // Settings section
-            _buildSectionHeader('Settings'),
-            _buildLinkItem(
-              icon: Icons.settings,
-              title: 'App Settings',
-              onTap: () {},
-            ),
-            
-            // Support section
-            _buildSectionHeader('Support'),
-            _buildLinkItem(
-              icon: Icons.help_outline,
-              title: 'Help Center',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.support_agent,
-              title: 'Contact Support',
-              onTap: () {},
-            ),
-            _buildLinkItem(
-              icon: Icons.feedback,
-              title: 'Send Feedback',
-              onTap: () {},
-            ),
-            
-            // App info
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+              
+              const SizedBox(height: 16),
+              
+              // Logout button
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade300,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // App version
+              Center(
                 child: Text(
-                  'Version 1.0.0',
+                  'CollectorHub v1.0.0',
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: Colors.grey.shade500,
                     fontSize: 12,
                   ),
                 ),
               ),
+              
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+    );
+  }
+  
+  Widget _buildCard({required String title, required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
+            const SizedBox(height: 16),
+            ...children,
           ],
         ),
       ),
     );
   }
   
-  Widget _buildSectionHeader(String title) {
+  Widget _buildDetailItem({
+    required IconData icon, 
+    required String title, 
+    required String value,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.deepPurple,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
   
-  Widget _buildLinkItem({
-    required IconData icon,
+  Widget _buildActionItem({
+    required IconData icon, 
     required String title,
     required VoidCallback onTap,
-    Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: Colors.grey.shade800,
-              width: 1,
-            ),
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: Colors.deepPurple,
+                size: 20,
               ),
             ),
-            trailing ?? const Icon(Icons.chevron_right, color: Colors.grey),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey,
+            ),
           ],
         ),
       ),

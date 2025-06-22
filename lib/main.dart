@@ -7,25 +7,61 @@ import 'services/auth_service.dart';
 import 'services/auth_wrapper.dart';
 import 'dart:developer' as developer;
 
-void main() async {
+void main() {
+  // Ensure Flutter is initialized before doing anything else
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Check if Firebase is already initialized
-  try {
-    if (Firebase.apps.isEmpty) {
+  // Run the app with a FutureBuilder to handle Firebase initialization
+  runApp(const AppInitializer());
+}
+
+class AppInitializer extends StatelessWidget {
+  const AppInitializer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      // Initialize Firebase asynchronously
+      future: _initializeFirebase(),
+      builder: (context, snapshot) {
+        // Show loading screen while Firebase initializes
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        // Firebase initialized successfully or was already initialized, start the main app
+        return const MyApp();
+      },
+    );
+  }
+
+  // Initialize Firebase safely
+  Future<void> _initializeFirebase() async {
+    try {
+      // Check if Firebase is already initialized
+      if (Firebase.apps.isNotEmpty) {
+        developer.log('Firebase was already initialized');
+        return;
+      }
+      
+      // Initialize Firebase for the first time
       developer.log('Initializing Firebase');
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
       developer.log('Firebase initialized successfully');
-    } else {
-      developer.log('Firebase was already initialized');
+    } catch (e) {
+      // Just log the error but don't fail - the app might still work
+      developer.log('Error initializing Firebase: $e');
+      // We don't rethrow here, as we want the app to continue even if Firebase fails
     }
-  } catch (e) {
-    developer.log('Error initializing Firebase: $e');
   }
-  
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -36,6 +72,10 @@ class MyApp extends StatelessWidget {
     return StreamProvider<UserModel?>.value(
       initialData: null,
       value: AuthService().user,
+      catchError: (_, error) {
+        developer.log('Error in user stream: $error');
+        return null;
+      },
       child: MaterialApp(
         title: 'CollectorHub',
         theme: ThemeData(

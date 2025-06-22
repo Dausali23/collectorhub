@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
-import '../../services/auth_service.dart';
 import 'seller_dashboard.dart';
+import 'account_screen.dart';
 
 class SellerMainScreen extends StatefulWidget {
   final UserModel user;
@@ -14,7 +14,6 @@ class SellerMainScreen extends StatefulWidget {
 
 class _SellerMainScreenState extends State<SellerMainScreen> {
   int _selectedIndex = 0;
-  final AuthService _authService = AuthService();
   
   @override
   Widget build(BuildContext context) {
@@ -77,34 +76,6 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
   }
   
   Widget _profilePage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundImage: widget.user.photoUrl != null
-                ? NetworkImage(widget.user.photoUrl!)
-                : null,
-            child: widget.user.photoUrl == null
-                ? const Icon(Icons.person, size: 50)
-                : null,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            widget.user.displayName ?? 'Seller',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          Text(widget.user.email),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () async {
-              await _authService.signOut();
-            },
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
-    );
+    return AccountScreen(user: widget.user);
   }
 } 
