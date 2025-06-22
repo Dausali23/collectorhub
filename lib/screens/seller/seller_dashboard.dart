@@ -26,9 +26,16 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
     _tabController.addListener(() {
       // Force rebuild when tab changes to update button label
       if (_tabController.indexIsChanging) {
+        print("Tab changing to index: ${_tabController.index}");
         setState(() {});
       }
     });
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    print("Current tab index: ${_tabController.index}");
   }
   
   @override
@@ -71,9 +78,64 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Determine button text based on active tab
-    final bool isFixedPriceTab = _tabController.index == 0;
-    final String buttonText = isFixedPriceTab ? 'Add Collectible' : 'Create Auction';
+    // Define each tab view separately for clarity
+    final Widget fixedPriceTab = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddListingScreen(user: user),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Collectible'),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: _buildListingsTab(user.uid, true),
+        ),
+      ],
+    );
+
+    final Widget auctionsTab = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateAuctionScreen(user: user),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Create Auction'),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: _buildListingsTab(user.uid, false),
+        ),
+      ],
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -129,65 +191,11 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Fixed Price Listings Tab
-                Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AddListingScreen(user: user),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Collectible'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: _buildListingsTab(user.uid, true),
-                    ),
-                  ],
-                ),
+                // Fixed Price Listings Tab with Add Collectible button
+                fixedPriceTab,
                 
-                // Auctions Tab
-                Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreateAuctionScreen(user: user),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create Auction'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: _buildListingsTab(user.uid, false),
-                    ),
-                  ],
-                ),
+                // Auctions Tab with Create Auction button
+                auctionsTab,
               ],
             ),
           ),
@@ -408,7 +416,7 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) { // Use a separate context for the dialog
         return AlertDialog(
           title: const Text('Delete Collectible'),
           content: const Text(
@@ -416,7 +424,7 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop(); // Use dialogContext
               },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.black54,
@@ -425,11 +433,12 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop(); // Use dialogContext
                 try {
                   await _firestoreService.deleteListing(listingId);
                   if (!mounted) return;
                   
+                  // Now it's safe to use context because we checked mounted
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Collectible deleted successfully'),
@@ -438,6 +447,7 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
                 } catch (e) {
                   if (!mounted) return;
                   
+                  // Now it's safe to use context because we checked mounted
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Failed to delete collectible: $e'),
