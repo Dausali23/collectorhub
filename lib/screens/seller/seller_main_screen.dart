@@ -2,18 +2,30 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import 'seller_dashboard.dart';
 import 'account_screen.dart';
+import 'seller_collectibles_screen.dart';
 
 class SellerMainScreen extends StatefulWidget {
   final UserModel user;
+  final int initialIndex;
   
-  const SellerMainScreen({super.key, required this.user});
+  const SellerMainScreen({
+    super.key, 
+    required this.user,
+    this.initialIndex = 0,
+  });
 
   @override
   State<SellerMainScreen> createState() => _SellerMainScreenState();
 }
 
 class _SellerMainScreenState extends State<SellerMainScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+  
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -34,6 +46,10 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.collections),
+            label: 'Collectibles',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.chat),
             label: 'Messages',
           ),
@@ -48,14 +64,16 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
   
   Widget _getPage(int index) {
     switch (index) {
-      case 0:
-        return const SellerDashboard();
-      case 1:
+      case 0: // Dashboard with orders
+        return SellerDashboard(user: widget.user);
+      case 1: // Collectibles 
+        return SellerCollectiblesScreen(user: widget.user);
+      case 2: // Messages
         return _placeholderPage('Messages');
-      case 2:
+      case 3: // Profile
         return _profilePage();
       default:
-        return const SellerDashboard();
+        return SellerDashboard(user: widget.user);
     }
   }
   

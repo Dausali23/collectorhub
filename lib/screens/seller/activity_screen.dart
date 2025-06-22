@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
+import 'orders_screen.dart';
 
 class ActivityScreen extends StatefulWidget {
   final UserModel user;
@@ -32,7 +33,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
               subtitle: 'Your order status and history',
               icon: Icons.receipt_long,
               iconColor: Colors.blue,
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrdersScreen(user: widget.user),
+                  ),
+                );
+              },
               hasSubItems: true,
               subItems: [
                 _buildOrderStatusItem(
@@ -77,17 +85,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
               subtitle: 'Your active, watched and past auctions',
               icon: Icons.gavel,
               iconColor: Colors.pink,
-              onTap: () {},
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Wishlist section
-            _buildSection(
-              title: 'Wishlist',
-              subtitle: 'Your likes, favourites items and saved searches',
-              icon: Icons.favorite,
-              iconColor: Colors.red,
               onTap: () {},
             ),
             

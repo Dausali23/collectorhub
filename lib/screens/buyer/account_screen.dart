@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../edit_profile_screen.dart';
+import 'purchase_history_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -195,6 +196,18 @@ class _AccountScreenState extends State<AccountScreen> {
               _buildCard(
                 title: 'Settings & Options',
                 children: [
+                  _buildActionItem(
+                    icon: Icons.history,
+                    title: 'Purchase History',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PurchaseHistoryScreen(user: userToDisplay),
+                        ),
+                      );
+                    },
+                  ),
                   _buildActionItem(
                     icon: Icons.settings,
                     title: 'App Settings',

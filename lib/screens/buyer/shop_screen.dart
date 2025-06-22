@@ -256,7 +256,7 @@ class _ShopScreenState extends State<ShopScreen> {
                       padding: const EdgeInsets.all(16),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.75,
+                        childAspectRatio: 0.7,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),
@@ -326,94 +326,92 @@ class _ShopScreenState extends State<ShopScreen> {
             ),
           ],
         ),
-        child: SizedBox(
-          height: 245,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image with sale/auction badge
-              Stack(
-                children: [
-                  // Image container with fixed height
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                    child: SizedBox(
-                      height: 110,
-                      width: double.infinity,
-                      child: listing.images.isNotEmpty
-                          ? ImageUtils.getImageWidget(
-                              ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              color: Colors.grey.shade200,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.image_not_supported,
-                                    size: 40,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image with sale/auction badge
+            Stack(
+              children: [
+                // Image container with fixed height
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                  child: SizedBox(
+                    height: 110,
+                    width: double.infinity,
+                    child: listing.images.isNotEmpty
+                        ? ImageUtils.getImageWidget(
+                            ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: Colors.grey.shade200,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_not_supported,
+                                  size: 40,
+                                  color: Colors.grey.shade500,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'No image',
+                                  style: TextStyle(
+                                    fontSize: 12,
                                     color: Colors.grey.shade500,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'No image',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                    ),
+                          ),
                   ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 2,
-                        horizontal: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: listing.isFixedPrice ? Colors.blue : Colors.red,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        listing.isFixedPrice ? 'SALE' : 'AUCTION',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 2,
+                      horizontal: 8,
                     ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
+                      color: listing.isFixedPrice ? Colors.blue : Colors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      listing.isFixedPrice ? 'SALE' : 'AUCTION',
+                      style: const TextStyle(
                         color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.favorite_border,
-                        size: 16,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
-              ),
-              
-              // Fixed height container for content
-              Container(
-                height: 95,
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_border,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            // Content with Expanded to use remaining space
+            Expanded(
+              child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,17 +444,14 @@ class _ShopScreenState extends State<ShopScreen> {
                     const SizedBox(height: 2),
                     
                     // Item title
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      child: Text(
-                        listing.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      listing.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     
@@ -494,22 +489,23 @@ class _ShopScreenState extends State<ShopScreen> {
                           ),
                       ],
                     ),
-                    // Optional comparison text row
+                    
+                    // Optional comparison text row - only show if there's space
                     if (listing.marketPrice != null && listing.marketPrice! > 0)
                       Text(
                         "Market: RM ${listing.marketPrice!.toStringAsFixed(2)}",
                         style: TextStyle(
                           fontSize: 10,
                           color: _getPriceComparisonColor(listing.price, listing.marketPrice!),
-                          decoration: TextDecoration.underline,
-                          decorationStyle: TextDecorationStyle.dotted,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

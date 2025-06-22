@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../models/purchase_model.dart';
 import '../../services/cart_service.dart';
+import 'purchase_history_screen.dart';
+import 'purchase_detail_screen.dart';
 
 class ActivityScreen extends StatefulWidget {
   final UserModel user;
@@ -74,17 +76,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
               icon: Icons.gavel,
               iconColor: Colors.pink,
               onTap: () => _navigateToAuctions(),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Wishlist section
-            _buildSection(
-              title: 'Wishlist',
-              subtitle: 'Your likes, favourites items and saved searches',
-              icon: Icons.favorite,
-              iconColor: Colors.red,
-              onTap: () => _navigateToWishlist(),
             ),
             
             const SizedBox(height: 24),
@@ -435,31 +426,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
   
   // Navigation methods
   void _navigateToOrderHistory({String? filter}) {
-    // TODO: Navigate to order history screen with optional filter
-    // Currently just shows a modal
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Order History ${filter != null ? '(Filter: $filter)' : ''}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Order history will be implemented in a future update'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PurchaseHistoryScreen(user: widget.user),
       ),
     );
   }
@@ -472,11 +442,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
     // TODO: Navigate to auctions screen
   }
   
-  void _navigateToWishlist() {
-    // TODO: Navigate to wishlist screen
-  }
-  
   void _navigateToPurchaseDetails(PurchaseModel purchase) {
-    // TODO: Navigate to purchase details screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PurchaseDetailScreen(
+          purchase: purchase,
+          user: widget.user,
+        ),
+      ),
+    );
   }
 } 

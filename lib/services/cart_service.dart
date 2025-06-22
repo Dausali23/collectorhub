@@ -199,6 +199,17 @@ class CartService {
         updateData['paymentClaimedAt'] = FieldValue.serverTimestamp();
       } else if (newStatus == PurchaseStatus.confirmed && purchase.confirmedAt == null) {
         updateData['confirmedAt'] = FieldValue.serverTimestamp();
+        
+        // Update the listing to mark it as sold
+        final listingRef = _firestore.collection('listings').doc(purchase.listingId);
+        await listingRef.update({
+          'isAvailable': false,
+          'soldAt': FieldValue.serverTimestamp(),
+          'soldTo': purchase.buyerId,
+          'soldToName': purchase.buyerName,
+        });
+        
+        developer.log('Listing marked as sold to ${purchase.buyerName}');
       } else if (newStatus == PurchaseStatus.completed && purchase.completedAt == null) {
         updateData['completedAt'] = FieldValue.serverTimestamp();
       }
@@ -220,5 +231,32 @@ class CartService {
         .map((snapshot) => snapshot.docs
             .map((doc) => PurchaseModel.fromFirestore(doc))
             .toList());
+  }
+  
+  // Get purchases for seller
+  Stream<List<PurchaseModel>> getSellerPurchases(String userId, {PurchaseStatus? status}) {
+    // First, get all the seller's purchases
+    Query query = _purchasesCollection
+        .where('sellerId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true);
+    
+    // Instead of using a where clause for status filtering (which requires a composite index),
+    // we'll filter the results on the client side to avoid the index requirement
+    return query.snapshots()
+        .map((snapshot) {
+          final allPurchases = snapshot.docs
+              .map((doc) => PurchaseModel.fromFirestore(doc))
+              .toList();
+          
+          // If no status filter is provided, return all purchases
+          if (status == null) {
+            return allPurchases;
+          }
+          
+          // Otherwise, filter on the client side
+          return allPurchases.where(
+            (purchase) => purchase.status == status
+          ).toList();
+        });
   }
 } 
