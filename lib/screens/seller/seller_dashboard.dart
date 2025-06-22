@@ -6,6 +6,7 @@ import '../../services/firestore_service.dart';
 import '../../utils/image_utils.dart';
 import 'add_listing_screen.dart';
 import 'edit_listing_screen.dart';
+import 'create_auction_screen.dart';
 
 class SellerDashboard extends StatefulWidget {
   const SellerDashboard({super.key});
@@ -22,6 +23,12 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      // Force rebuild when tab changes to update button label
+      if (_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
   }
   
   @override
@@ -64,6 +71,10 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Determine button text based on active tab
+    final bool isFixedPriceTab = _tabController.index == 0;
+    final String buttonText = isFixedPriceTab ? 'Add Collectible' : 'Create Auction';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Collectibles"),
@@ -84,29 +95,34 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Welcome, ${user.displayName ?? 'Collector'}!",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+            child: Column(
+              children: [
+                // Welcome Card
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Welcome, ${user.displayName ?? 'Collector'}!",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Manage your collectibles and track your auctions from your dashboard.",
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Manage your collectibles and track your auctions from your dashboard.",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
           Expanded(
@@ -114,28 +130,68 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
               controller: _tabController,
               children: [
                 // Fixed Price Listings Tab
-                _buildListingsTab(user.uid, true),
+                Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddListingScreen(user: user),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Collectible'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _buildListingsTab(user.uid, true),
+                    ),
+                  ],
+                ),
                 
                 // Auctions Tab
-                _buildListingsTab(user.uid, false),
+                Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreateAuctionScreen(user: user),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create Auction'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _buildListingsTab(user.uid, false),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddListingScreen(user: user),
-            ),
-          );
-        },
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        label: const Text('Add Collectible'),
-        icon: const Icon(Icons.add),
       ),
     );
   }
@@ -172,18 +228,6 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
                 Text(
                   "You don't have any ${isFixedPrice ? 'fixed price listings' : 'auctions'} yet.",
                   style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddListingScreen(),
-                      ),
-                    );
-                  },
-                  child: Text("Add ${isFixedPrice ? 'Listing' : 'Auction'}"),
                 ),
               ],
             ),
