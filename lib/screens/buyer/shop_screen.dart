@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
 import '../../utils/image_utils.dart';
+import 'item_detail_screen.dart';
+import 'cart_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   final UserModel user;
@@ -68,13 +70,24 @@ class _ShopScreenState extends State<ShopScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(25),
+                  GestureDetector(
+                    onTap: () {
+                      // Navigate to cart screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CartScreen(user: widget.user),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: const Icon(Icons.shopping_cart),
                     ),
-                    child: const Icon(Icons.shopping_cart),
                   ),
                 ],
               ),
@@ -182,7 +195,22 @@ class _ShopScreenState extends State<ShopScreen> {
                     );
                   }
                   
-                  final documents = snapshot.data?.docs ?? [];
+                  var documents = snapshot.data?.docs ?? [];
+                  
+                  // Apply search filter in the UI if needed
+                  final searchText = _searchController.text.trim().toLowerCase();
+                  if (searchText.isNotEmpty) {
+                    documents = documents.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final title = (data['title'] ?? '').toString().toLowerCase();
+                      final description = (data['description'] ?? '').toString().toLowerCase();
+                      final category = (data['category'] ?? '').toString().toLowerCase();
+                      
+                      return title.contains(searchText) || 
+                             description.contains(searchText) || 
+                             category.contains(searchText);
+                    }).toList();
+                  }
                   
                   if (documents.isEmpty) {
                     return Center(
@@ -259,23 +287,15 @@ class _ShopScreenState extends State<ShopScreen> {
       query = query.where('isFixedPrice', isEqualTo: true);
     }
     
-    // Apply category filter if not "All Categories"
+    // Apply category filter if not "All Categories" and it's supported by Firestore
     if (_selectedCategory != 'All Categories') {
-      // We can't add another where clause after isAvailable and isFixedPrice
-      // So for category filtering, we'll need to filter results in memory
-      // But we can still add ordering that matches our index
+      query = query.where('category', isEqualTo: _selectedCategory);
     }
     
     // Use ordering that matches our existing index
     query = query.orderBy('createdAt', descending: true);
     
-    // Apply search filter if there's text in the search field
-    final searchText = _searchController.text.trim();
-    if (searchText.isNotEmpty) {
-      // We'll need to filter the results in memory for search
-      // since we can't add more where clauses
-    }
-    
+    // Get the base stream - we'll filter for search terms in the UI if needed
     return query.snapshots();
   }
   
@@ -283,6 +303,15 @@ class _ShopScreenState extends State<ShopScreen> {
     return GestureDetector(
       onTap: () {
         // Navigate to details page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemDetailScreen(
+              item: listing,
+              currentUser: widget.user,
+            ),
+          ),
+        );
       },
       child: Container(
         decoration: BoxDecoration(
