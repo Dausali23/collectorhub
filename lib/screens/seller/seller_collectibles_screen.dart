@@ -38,6 +38,59 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
     super.dispose();
   }
 
+  // Delete confirmation dialog
+  Future<void> _showDeleteConfirmation(String listingId) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Collectible'),
+          content: const Text(
+              'Are you sure you want to delete this collectible? This action cannot be undone.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black54,
+              ),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                try {
+                  await _firestoreService.deleteListing(listingId);
+                  if (!mounted) return;
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Collectible deleted successfully'),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to delete collectible: $e'),
+                    ),
+                  );
+                }
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Add image handling method (handles both network and base64 images)
   Widget _getNetworkImage(
     String? imageUrl, {
@@ -200,107 +253,150 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
             return Card(
               margin: const EdgeInsets.only(bottom: 16),
               clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () {
-                                     Navigator.push(
-                     context,
-                     MaterialPageRoute(
-                       builder: (context) => EditListingScreen(
-                         listingId: listing.id!,
-                       ),
-                     ),
-                   );
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Listing image
-                    if (listing.images.isNotEmpty)
-                      AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: _getNetworkImage(
-                          listing.images.first,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    else
-                      AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Container(
-                          color: Colors.grey[300],
-                          child: const Center(
-                            child: Icon(Icons.image, size: 64, color: Colors.grey),
-                          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Listing image
+                  if (listing.images.isNotEmpty)
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: _getNetworkImage(
+                        listing.images.first,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else
+                    AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(Icons.image, size: 64, color: Colors.grey),
                         ),
                       ),
-                    
-                    // Listing details
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  listing.title,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Text(
-                                "\$${listing.price.toStringAsFixed(2)}",
+                    ),
+                  
+                  // Listing details
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                listing.title,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.green,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            listing.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.grey[700]),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: [
+                            ),
+                            Text(
+                              "\$${listing.price.toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          listing.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.grey[700]),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            Chip(
+                              label: Text(listing.category),
+                              backgroundColor: Color.fromRGBO(
+                                (Theme.of(context).colorScheme.primary.value >> 16) & 0xFF,
+                                (Theme.of(context).colorScheme.primary.value >> 8) & 0xFF,
+                                Theme.of(context).colorScheme.primary.value & 0xFF,
+                                0.2
+                              ),
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            Chip(
+                              label: Text(ListingModel.conditionToString(listing.condition)),
+                              backgroundColor: Color.fromRGBO(
+                                (Theme.of(context).colorScheme.secondary.value >> 16) & 0xFF,
+                                (Theme.of(context).colorScheme.secondary.value >> 8) & 0xFF,
+                                Theme.of(context).colorScheme.secondary.value & 0xFF,
+                                0.2
+                              ),
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            if (!listing.isFixedPrice)
                               Chip(
-                                label: Text(listing.category),
-                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                label: const Text("Auction"),
+                                backgroundColor: Color.fromRGBO(
+                                  (Colors.amber.value >> 16) & 0xFF,
+                                  (Colors.amber.value >> 8) & 0xFF,
+                                  Colors.amber.value & 0xFF,
+                                  0.2
+                                ),
                                 padding: EdgeInsets.zero,
                                 visualDensity: VisualDensity.compact,
                               ),
-                              Chip(
-                                label: Text(ListingModel.conditionToString(listing.condition)),
-                                backgroundColor: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Management buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditListingScreen(
+                                      listingId: listing.id!,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.edit, size: 18),
+                              label: const Text('Edit'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               ),
-                              if (!listing.isFixedPrice)
-                                Chip(
-                                  label: const Text("Auction"),
-                                  backgroundColor: Colors.amber.withOpacity(0.2),
-                                  padding: EdgeInsets.zero,
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                _showDeleteConfirmation(listing.id!);
+                              },
+                              icon: const Icon(Icons.delete, size: 18),
+                              label: const Text('Delete'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },

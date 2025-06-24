@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
 import '../../models/purchase_model.dart';
 import '../../services/firestore_service.dart';
 import '../../services/cart_service.dart';
 import '../../utils/image_utils.dart';
+import 'dart:developer' as developer;
 import 'add_listing_screen.dart';
 import 'edit_listing_screen.dart';
 import 'create_auction_screen.dart';
@@ -34,7 +34,7 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
     _tabController.addListener(() {
       // Force rebuild when tab changes to update button label
       if (_tabController.indexIsChanging) {
-        print("Tab changing to index: ${_tabController.index}");
+        developer.log("Tab changing to index: ${_tabController.index}");
         setState(() {});
       }
     });
@@ -43,7 +43,7 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    print("Current tab index: ${_tabController.index}");
+    developer.log("Current tab index: ${_tabController.index}");
   }
   
   @override
@@ -82,7 +82,8 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
   Widget build(BuildContext context) {
 
     // Define each tab view separately for clarity
-    final Widget fixedPriceTab = Column(
+    // Removed unused variable
+    Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -111,7 +112,8 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
       ],
     );
 
-    final Widget auctionsTab = Column(
+    // Removed unused variable
+    Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -521,7 +523,12 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: Color.fromRGBO(
+                  (color.value >> 16) & 0xFF, 
+                  (color.value >> 8) & 0xFF, 
+                  color.value & 0xFF, 
+                  0.1
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -575,7 +582,12 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: Color.fromRGBO(
+                    (color.value >> 16) & 0xFF, 
+                    (color.value >> 8) & 0xFF, 
+                    color.value & 0xFF, 
+                    0.1
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: Center(

@@ -240,7 +240,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   stream: _firestore
                     .collection('listings')
                     .where('isAvailable', isEqualTo: true)
-                    .where('isFixedPrice', isEqualTo: false)
+                    .where('isAuction', isEqualTo: true)
                     .orderBy('createdAt', descending: true)
                     .limit(10)
                     .snapshots(),

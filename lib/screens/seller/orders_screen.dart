@@ -30,10 +30,6 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     super.dispose();
   }
   
-  // Get seller purchases stream filtered by status
-  Stream<List<PurchaseModel>> _getSellerPurchases(PurchaseStatus? status) {
-    return _cartService.getSellerPurchases(widget.user.uid, status: status);
-  }
   
   // Action to confirm payment
   void _confirmPayment(PurchaseModel purchase) async {
@@ -220,9 +216,9 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Color.fromRGBO(
-                          statusColor.red,
-                          statusColor.green, 
-                          statusColor.blue, 
+                          (statusColor.value >> 16) & 0xFF,
+                          (statusColor.value >> 8) & 0xFF, 
+                          statusColor.value & 0xFF, 
                           0.2
                         ),
                         borderRadius: BorderRadius.circular(20),
