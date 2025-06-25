@@ -465,61 +465,180 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: listing.images.isNotEmpty
-                    ? ImageUtils.getImageWidget(
-                        ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      )
-                    : Container(
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            color: Colors.grey,
-                            size: 40,
+            // Image with sale/auction badge
+            Stack(
+              children: [
+                // Image container with fixed height
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                  child: SizedBox(
+                    height: 110,
+                    width: double.infinity,
+                    child: listing.images.isNotEmpty
+                        ? ImageUtils.getImageWidget(
+                            ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: Colors.grey.shade200,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_not_supported,
+                                  size: 40,
+                                  color: Colors.grey.shade500,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'No image',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 2,
+                      horizontal: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: listing.isFixedPrice ? Colors.blue : Colors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      listing.isFixedPrice ? 'SALE' : 'AUCTION',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
-              ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_border,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
             ),
             
-            // Info
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    listing.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+            // Content with Expanded to use remaining space
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Seller info
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 8,
+                          backgroundColor: Colors.deepPurple.shade300,
+                          child: const Text(
+                            'S',
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            listing.sellerName,
+                            style: const TextStyle(fontSize: 10),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    listing.category,
-                    style: TextStyle(
-                      color: Colors.deepPurple.shade400,
-                      fontSize: 12,
+                    const SizedBox(height: 2),
+                    
+                    // Item title
+                    Text(
+                      listing.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "RM ${listing.price.toStringAsFixed(2)}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    const SizedBox(height: 2),
+                    
+                    // Condition and category
+                    Text(
+                      '${ListingModel.conditionToString(listing.condition)} • ${listing.category}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    
+                    // Push price to bottom with spacer
+                    const Spacer(),
+                    
+                    // Price
+                    Row(
+                      children: [
+                        Text(
+                          "RM ${listing.price.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        // Market price comparison if available
+                        if (listing.marketPrice != null && listing.marketPrice! > 0)
+                          Icon(
+                            _getPriceComparisonIcon(listing.price, listing.marketPrice!),
+                            size: 12,
+                            color: _getPriceComparisonColor(listing.price, listing.marketPrice!),
+                          ),
+                      ],
+                    ),
+                    
+                    // Optional comparison text row - only show if there's space
+                    if (listing.marketPrice != null && listing.marketPrice! > 0)
+                      Text(
+                        "Market: RM ${listing.marketPrice!.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: _getPriceComparisonColor(listing.price, listing.marketPrice!),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -681,24 +800,25 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             ),
           ],
         ),
-        child: SizedBox(
-          height: 215,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image with sale/auction badge
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image with sale/auction badge
+            Stack(
+              children: [
+                // Image container with fixed height
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                  child: SizedBox(
+                    height: 110,
+                    width: double.infinity,
                     child: listing.images.isNotEmpty
                         ? ImageUtils.getImageWidget(
                             ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
                             fit: BoxFit.cover,
-                            width: double.infinity,
                           )
                         : Container(
                             color: Colors.grey.shade200,
@@ -706,13 +826,13 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.broken_image,
+                                  Icons.image_not_supported,
                                   size: 40,
                                   color: Colors.grey.shade500,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Image error',
+                                  'No image',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade500,
@@ -722,44 +842,55 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                             ),
                           ),
                   ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 2,
-                        horizontal: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: listing.isFixedPrice ? Colors.blue : Colors.red,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        listing.isFixedPrice ? 'SALE' : 'AUCTION',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 2,
+                      horizontal: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: listing.isFixedPrice ? Colors.blue : Colors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      listing.isFixedPrice ? 'SALE' : 'AUCTION',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_border,
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            // Content with Expanded to use remaining space
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      listing.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    // Seller info
                     Row(
                       children: [
                         CircleAvatar(
@@ -784,29 +915,93 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
+                    
+                    // Item title
                     Text(
-                      ListingModel.conditionToString(listing.condition),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      "RM ${listing.price.toStringAsFixed(2)}",
+                      listing.title,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 2),
+                    
+                    // Condition and category
+                    Text(
+                      '${ListingModel.conditionToString(listing.condition)} • ${listing.category}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    // Push price to bottom with spacer
+                    const Spacer(),
+                    
+                    // Price
+                    Row(
+                      children: [
+                        Text(
+                          "RM ${listing.price.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        // Market price comparison if available
+                        if (listing.marketPrice != null && listing.marketPrice! > 0)
+                          Icon(
+                            _getPriceComparisonIcon(listing.price, listing.marketPrice!),
+                            size: 12,
+                            color: _getPriceComparisonColor(listing.price, listing.marketPrice!),
+                          ),
+                      ],
+                    ),
+                    
+                    // Optional comparison text row - only show if there's space
+                    if (listing.marketPrice != null && listing.marketPrice! > 0)
+                      Text(
+                        "Market: RM ${listing.marketPrice!.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: _getPriceComparisonColor(listing.price, listing.marketPrice!),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Color _getPriceComparisonColor(double price, double marketPrice) {
+    if (price < marketPrice * 0.9) {
+      return Colors.green;
+    } else if (price > marketPrice * 1.1) {
+      return Colors.red;
+    } else {
+      return Colors.orange;
+    }
+  }
+  
+  IconData _getPriceComparisonIcon(double price, double marketPrice) {
+    if (price < marketPrice * 0.9) {
+      return Icons.trending_down;
+    } else if (price > marketPrice * 1.1) {
+      return Icons.trending_up;
+    } else {
+      return Icons.remove;
+    }
   }
 } 
