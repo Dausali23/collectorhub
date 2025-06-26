@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
 import '../../utils/image_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -16,11 +17,60 @@ class BuyerHomeScreen extends StatefulWidget {
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // Add category-related state variables
+  final List<String> _categories = [
+    'Trading Cards',
+    'Comics',
+    'Toys',
+    'Stamps',
+    'Coins',
+    'Funko Pops',
+    'Action Figures',
+    'Vintage Items',
+  ];
+  
+  // Track selected categories for recommendations
+  Set<String> _selectedCategories = {};
 
   @override
   void initState() {
     super.initState();
     _checkImagesInFirestore();
+    _loadSavedCategories();
+  }
+  
+  // Load saved category preferences
+  Future<void> _loadSavedCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedCategories = prefs.getStringList('user_preferred_categories');
+      if (savedCategories != null && savedCategories.isNotEmpty) {
+        setState(() {
+          _selectedCategories = savedCategories.toSet();
+        });
+      } else {
+        // Default to all categories if none are saved
+        setState(() {
+          _selectedCategories = _categories.toSet();
+        });
+      }
+    } catch (e) {
+      developer.log('Error loading saved categories: $e');
+      // Default to all categories
+      setState(() {
+        _selectedCategories = _categories.toSet();
+      });
+    }
+  }
+  
+  // Save selected categories
+  Future<void> _saveSelectedCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('user_preferred_categories', _selectedCategories.toList());
+    } catch (e) {
+      developer.log('Error saving categories: $e');
+    }
   }
 
   // Function to check if image URLs are valid
@@ -62,6 +112,102 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     } catch (e) {
       developer.log('Error checking Firestore images: $e');
     }
+  }
+
+  // Build recommendation stream based on selected categories
+  Stream<QuerySnapshot> _buildRecommendationsStream() {
+    Query query = _firestore
+      .collection('listings')
+      .where('isAvailable', isEqualTo: true);
+      
+    // We can only apply one array-contains filter in Firestore
+    // So instead, just limit results and filter in the UI if there are selected categories
+    return query
+      .orderBy('createdAt', descending: true)
+      .limit(20)  // Get more items so we have enough after filtering
+      .snapshots();
+  }
+  
+  // Show dialog for category filtering
+  void _showCategoryFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Create a temporary set to hold changes during dialog interaction
+        final tempSelectedCategories = Set<String>.from(_selectedCategories);
+        
+        return AlertDialog(
+          title: const Text(
+            'Select Categories',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        title: const Text('Select All'),
+                        trailing: Checkbox(
+                          value: tempSelectedCategories.length == _categories.length,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value == true) {
+                                tempSelectedCategories.addAll(_categories);
+                              } else {
+                                tempSelectedCategories.clear();
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const Divider(),
+                      ...List.generate(_categories.length, (index) {
+                        final category = _categories[index];
+                        return CheckboxListTile(
+                          title: Text(category),
+                          value: tempSelectedCategories.contains(category),
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value == true) {
+                                tempSelectedCategories.add(category);
+                              } else {
+                                tempSelectedCategories.remove(category);
+                              }
+                            });
+                          },
+                        );
+                      })
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('CANCEL'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('APPLY'),
+              onPressed: () {
+                setState(() {
+                  _selectedCategories = tempSelectedCategories;
+                });
+                _saveSelectedCategories();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -126,30 +272,38 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   ),
                 ),
                 
-                // Featured Collectibles
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    'Featured Collectibles',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                // Recommendations Section (formerly Featured Collectibles)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Recommended For You',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          _showCategoryFilterDialog();
+                        },
+                        icon: const Icon(Icons.tune, size: 16),
+                        label: const Text('Filter'),
+                      ),
+                    ],
                   ),
                 ),
                 
-                // Featured Collectibles Stream
+                // Recommendations Stream
                 StreamBuilder<QuerySnapshot>(
-                  stream: _firestore
-                    .collection('listings')
-                    .where('isAvailable', isEqualTo: true)
-                    .limit(5)
-                    .snapshots(),
+                  stream: _buildRecommendationsStream(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return const Center(
-                        child: Text('Error loading collectibles'),
+                        child: Text('Error loading recommendations'),
                       );
                     }
 
@@ -159,7 +313,21 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       );
                     }
 
-                    final docs = snapshot.data?.docs ?? [];
+                    var docs = snapshot.data?.docs ?? [];
+                    
+                    // Filter by selected categories if any are selected
+                    if (_selectedCategories.isNotEmpty && _selectedCategories.length < _categories.length) {
+                      docs = docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final category = data['category'] as String;
+                        return _selectedCategories.contains(category);
+                      }).toList();
+                    }
+                    
+                    // Limit to 5 items for display
+                    if (docs.length > 5) {
+                      docs = docs.sublist(0, 5);
+                    }
                     
                     // Check if there are no items
                     if (docs.isEmpty) {
@@ -176,7 +344,103 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                             Icon(Icons.collections, size: 50, color: Colors.grey.shade400),
                             const SizedBox(height: 16),
                             const Text(
-                              'No collectibles available',
+                              'No recommendations available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Try selecting different categories',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return SizedBox(
+                      height: 240,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final listing = ListingModel.fromFirestore(docs[index]);
+                          return _buildFeaturedCard(listing);
+                        },
+                      ),
+                    );
+                  }
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Fixed Price Items section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Fixed Price Items',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('View All'),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Fixed Price Items Stream
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore
+                    .collection('listings')
+                    .where('isAvailable', isEqualTo: true)
+                    .where('isFixedPrice', isEqualTo: true)
+                    .orderBy('createdAt', descending: true)
+                    .limit(10)
+                    .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Text('Error loading fixed price items');
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    final fixedPriceItems = snapshot.data?.docs ?? [];
+                    
+                    // Check if no fixed price items are available
+                    if (fixedPriceItems.isEmpty) {
+                      return Container(
+                        height: 200,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.sell, size: 50, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No fixed price items available',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -197,14 +461,14 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     }
                     
                     return SizedBox(
-                      height: 240,
+                      height: 200,
                       child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
-                        itemCount: docs.length,
+                        itemCount: fixedPriceItems.length,
                         itemBuilder: (context, index) {
-                          final listing = ListingModel.fromFirestore(docs[index]);
-                          return _buildFeaturedCard(listing);
+                          final listing = ListingModel.fromFirestore(fixedPriceItems[index]);
+                          return _buildFixedPriceCard(listing);
                         },
                       ),
                     );
@@ -240,7 +504,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   stream: _firestore
                     .collection('listings')
                     .where('isAvailable', isEqualTo: true)
-                    .where('isAuction', isEqualTo: true)
+                    .where('isFixedPrice', isEqualTo: false)
                     .orderBy('createdAt', descending: true)
                     .limit(10)
                     .snapshots(),
@@ -281,7 +545,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Check back later for upcoming auctions',
+                              'Be the first to add an item!',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -308,50 +572,6 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 ),
                 
                 const SizedBox(height: 16),
-                
-                // Categories section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Browse Categories',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text('View All'),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Categories Grid
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    children: [
-                      _buildCategoryCard('Trading Cards', Icons.style),
-                      _buildCategoryCard('Comics', Icons.book),
-                      _buildCategoryCard('Toys', Icons.toys),
-                      _buildCategoryCard('Figures', Icons.sports_handball),
-                      _buildCategoryCard('Memorabilia', Icons.stars),
-                      _buildCategoryCard('Other', Icons.category),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
                 
                 // Recent Listings
                 Padding(
@@ -647,10 +867,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
   }
   
-  Widget _buildAuctionCard(ListingModel listing) {
+  Widget _buildFixedPriceCard(ListingModel listing) {
     return GestureDetector(
       onTap: () {
-        // Navigate to auction details
+        // Navigate to sale item details
       },
       child: Container(
         width: 150,
@@ -671,12 +891,12 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Live tag
+            // Sale tag
             Container(
-              color: Colors.red,
+              color: Colors.blue,
               padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
               child: const Text(
-                'LIVE AUCTION',
+                'SALE',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -750,31 +970,102 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
   }
   
-  Widget _buildCategoryCard(String title, IconData icon) {
+  Widget _buildAuctionCard(ListingModel listing) {
     return GestureDetector(
       onTap: () {
-        // Navigate to category page
+        // Navigate to auction details
       },
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha(51),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              backgroundColor: Colors.deepPurple.shade100,
-              radius: 25,
-              child: Icon(
-                icon,
-                color: Colors.deepPurple,
-                size: 30,
+            // Live tag
+            Container(
+              color: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              child: const Text(
+                'AUCTION',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
+            
+            // Image
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: listing.images.isNotEmpty
+                    ? ImageUtils.getImageWidget(
+                        ImageUtils.formatImageUrl(listing.images.first) ?? listing.images.first,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 40,
+                              color: Colors.grey.shade500,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'No image',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+            
+            // Price
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    listing.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "RM ${listing.price.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
