@@ -6,6 +6,7 @@ import '../../models/listing_model.dart';
 import '../../utils/image_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'shop_screen.dart';
+import 'item_detail_screen.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -686,6 +687,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     return GestureDetector(
       onTap: () {
         // Navigate to item details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemDetailScreen(
+              item: listing,
+              currentUser: widget.user,
+            ),
+          ),
+        );
       },
       child: Container(
         width: 180,
@@ -891,7 +901,16 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   Widget _buildFixedPriceCard(ListingModel listing) {
     return GestureDetector(
       onTap: () {
-        // Navigate to sale item details
+        // Navigate to item details page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemDetailScreen(
+              item: listing,
+              currentUser: widget.user,
+            ),
+          ),
+        );
       },
       child: Container(
         width: 150,
@@ -995,6 +1014,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     return GestureDetector(
       onTap: () {
         // Navigate to auction details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemDetailScreen(
+              item: listing,
+              currentUser: widget.user,
+            ),
+          ),
+        );
       },
       child: Container(
         width: 150,
@@ -1098,6 +1126,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     return GestureDetector(
       onTap: () {
         // Navigate to item details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemDetailScreen(
+              item: listing,
+              currentUser: widget.user,
+            ),
+          ),
+        );
       },
       child: Container(
         decoration: BoxDecoration(
