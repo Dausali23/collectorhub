@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
 import '../../utils/image_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'shop_screen.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -396,7 +397,17 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context, 
+                            MaterialPageRoute(
+                              builder: (context) => ShopScreen(
+                                user: widget.user,
+                                initialShowAuctions: false,
+                              ),
+                            ),
+                          );
+                        },
                         child: const Text('View All'),
                       ),
                     ],
@@ -492,7 +503,17 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ShopScreen(
+                                user: widget.user,
+                                initialShowAuctions: true,
+                              ),
+                            ),
+                          );
+                        },
                         child: const Text('View All'),
                       ),
                     ],

@@ -8,8 +8,13 @@ import 'cart_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   final UserModel user;
+  final bool initialShowAuctions;
   
-  const ShopScreen({super.key, required this.user});
+  const ShopScreen({
+    super.key, 
+    required this.user,
+    this.initialShowAuctions = false,
+  });
 
   @override
   State<ShopScreen> createState() => _ShopScreenState();
@@ -30,6 +35,12 @@ class _ShopScreenState extends State<ShopScreen> {
     'Memorabilia',
   ];
   
+  @override
+  void initState() {
+    super.initState();
+    _showAuctions = widget.initialShowAuctions;
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
