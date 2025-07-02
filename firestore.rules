@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Base rule - authenticated users can read but need specific rules to write
+    match /{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // Default deny write access
+    }
+    
+    // Listings rules
+    match /listings/{listingId} {
+      allow read: if true; // Anyone can read listings
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+    
+    // Auctions rules
+    match /auctions/{auctionId} {
+      allow read: if true; // Anyone can read auctions
+      // Sellers can create/update their auctions
+      allow create: if request.auth != null && request.resource.data.sellerId == request.auth.uid;
+      // Allow updates if user is seller OR if user is placing a bid (only updating specific fields)
+      allow update: if request.auth != null && (
+        // Seller can update anything
+        resource.data.sellerId == request.auth.uid ||
+        // Bidders can only update bid-related fields
+        (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['currentPrice', 'bidCount', 'topBidderId', 'topBidderName']) &&
+          request.resource.data.topBidderId == request.auth.uid &&
+          request.resource.data.currentPrice > resource.data.currentPrice &&
+          (request.resource.data.currentPrice - resource.data.currentPrice) >= resource.data.bidIncrement
+        )
+      );
+      allow delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
+    }
+    
+    // Bids rules
+    match /bids/{bidId} {
+      allow read: if true; // Anyone can read bids
+      // Users can only create bids with their own ID
+      allow create: if request.auth != null && request.resource.data.bidderId == request.auth.uid;
+      allow update, delete: if false; // Bids should not be updated or deleted
+    }
+    
+    // User rules
+    match /users/{userId} {
+      allow read: if true; // Public profiles
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+} 

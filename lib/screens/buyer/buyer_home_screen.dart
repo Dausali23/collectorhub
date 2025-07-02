@@ -7,6 +7,8 @@ import '../../utils/image_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'shop_screen.dart';
 import 'item_detail_screen.dart';
+import 'auction_detail_screen.dart';
+import '../../widgets/current_bid_display.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -690,10 +692,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ItemDetailScreen(
-              item: listing,
-              currentUser: widget.user,
-            ),
+            builder: (context) => listing.isFixedPrice
+                ? ItemDetailScreen(
+                    item: listing,
+                    currentUser: widget.user,
+                  )
+                : AuctionDetailScreen(
+                    item: listing,
+                    currentUser: widget.user,
+                  ),
           ),
         );
       },
@@ -802,6 +809,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Seller info
                     Row(
@@ -859,14 +867,22 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     // Price
                     Row(
                       children: [
-                        Text(
-                          "RM ${listing.price.toStringAsFixed(2)}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        listing.isFixedPrice
+                        ? Text(
+                            "RM ${listing.price.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          )
+                        : Expanded(
+                            child: CurrentBidDisplay(
+                              listingId: listing.id!,
+                              initialPrice: listing.price,
+                              showLabel: false,
+                            ),
                           ),
-                        ),
-                        const Spacer(),
+                        if (listing.isFixedPrice) const Spacer(),
                         // Market price comparison if available
                         if (listing.marketPrice != null && listing.marketPrice! > 0)
                           Icon(
@@ -877,8 +893,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       ],
                     ),
                     
-                    // Optional comparison text row - only show if there's space
-                    if (listing.marketPrice != null && listing.marketPrice! > 0)
+                    // Optional comparison text row - only show if there's space and it's not an auction
+                    if (listing.isFixedPrice && listing.marketPrice != null && listing.marketPrice! > 0)
                       Text(
                         "Market: RM ${listing.marketPrice!.toStringAsFixed(2)}",
                         style: TextStyle(
@@ -1017,7 +1033,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ItemDetailScreen(
+            builder: (context) => AuctionDetailScreen(
               item: listing,
               currentUser: widget.user,
             ),
@@ -1106,12 +1122,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    "RM ${listing.price.toStringAsFixed(2)}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                  CurrentBidDisplay(
+                    listingId: listing.id!,
+                    initialPrice: listing.price,
+                    showLabel: false,
                   ),
                 ],
               ),
@@ -1129,10 +1143,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ItemDetailScreen(
-              item: listing,
-              currentUser: widget.user,
-            ),
+            builder: (context) => listing.isFixedPrice
+                ? ItemDetailScreen(
+                    item: listing,
+                    currentUser: widget.user,
+                  )
+                : AuctionDetailScreen(
+                    item: listing,
+                    currentUser: widget.user,
+                  ),
           ),
         );
       },
@@ -1238,6 +1257,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Seller info
                     Row(
@@ -1295,14 +1315,22 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     // Price
                     Row(
                       children: [
-                        Text(
-                          "RM ${listing.price.toStringAsFixed(2)}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        listing.isFixedPrice
+                        ? Text(
+                            "RM ${listing.price.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          )
+                        : Expanded(
+                            child: CurrentBidDisplay(
+                              listingId: listing.id!,
+                              initialPrice: listing.price,
+                              showLabel: false,
+                            ),
                           ),
-                        ),
-                        const Spacer(),
+                        if (listing.isFixedPrice) const Spacer(),
                         // Market price comparison if available
                         if (listing.marketPrice != null && listing.marketPrice! > 0)
                           Icon(
@@ -1313,8 +1341,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       ],
                     ),
                     
-                    // Optional comparison text row - only show if there's space
-                    if (listing.marketPrice != null && listing.marketPrice! > 0)
+                    // Optional comparison text row - only show if there's space and it's not an auction
+                    if (listing.isFixedPrice && listing.marketPrice != null && listing.marketPrice! > 0)
                       Text(
                         "Market: RM ${listing.marketPrice!.toStringAsFixed(2)}",
                         style: TextStyle(

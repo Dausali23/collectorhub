@@ -4,7 +4,9 @@ import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
 import '../../utils/image_utils.dart';
 import 'item_detail_screen.dart';
+import 'auction_detail_screen.dart';
 import 'cart_screen.dart';
+import '../../widgets/current_bid_display.dart';
 
 class ShopScreen extends StatefulWidget {
   final UserModel user;
@@ -317,7 +319,12 @@ class _ShopScreenState extends State<ShopScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ItemDetailScreen(
+            builder: (context) => listing.isFixedPrice
+                ? ItemDetailScreen(
+                    item: listing,
+                    currentUser: widget.user,
+                  )
+                : AuctionDetailScreen(
               item: listing,
               currentUser: widget.user,
             ),
@@ -483,14 +490,22 @@ class _ShopScreenState extends State<ShopScreen> {
                     // Price
                     Row(
                       children: [
-                        Text(
+                        listing.isFixedPrice
+                        ? Text(
                           "RM ${listing.price.toStringAsFixed(2)}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
+                          )
+                        : Expanded(
+                            child: CurrentBidDisplay(
+                              listingId: listing.id!,
+                              initialPrice: listing.price,
+                              showLabel: false,
+                            ),
                         ),
-                        const Spacer(),
+                        if (listing.isFixedPrice) const Spacer(),
                         // Market price comparison if available
                         if (listing.marketPrice != null && listing.marketPrice! > 0)
                           Icon(

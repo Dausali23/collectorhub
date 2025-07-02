@@ -329,6 +329,16 @@ class FirestoreService {
     }
   }
   
+  // Get a stream of a specific auction by ID
+  Stream<AuctionModel?> getAuctionStream(String auctionId) {
+    return _auctionsCollection.doc(auctionId).snapshots().map((doc) {
+      if (!doc.exists) {
+        return null;
+      }
+      return AuctionModel.fromFirestore(doc);
+    });
+  }
+  
   // Get all auctions with filters
   Stream<List<AuctionModel>> getAuctions({
     String? sellerId,
