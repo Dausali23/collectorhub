@@ -9,6 +9,7 @@ import 'shop_screen.dart';
 import 'item_detail_screen.dart';
 import 'auction_detail_screen.dart';
 import '../../widgets/current_bid_display.dart';
+import '../../services/firestore_service.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -21,6 +22,7 @@ class BuyerHomeScreen extends StatefulWidget {
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreService _firestoreService = FirestoreService();
   // Add category-related state variables
   final List<String> _categories = [
     'Trading Cards',
@@ -580,14 +582,31 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       );
                     }
                     
+                    // Get list of active auctions
+                    final activeAuctions = [];
+                    
+                    // Process auctions to check if they're expired
+                    for (var doc in auctions) {
+                      final listing = ListingModel.fromFirestore(doc);
+                      
+                      // Check if this auction has associated auction data
+                      if (listing.id != null) {
+                        // Check auction status
+                        _firestoreService.checkAndUpdateAuctionStatus(listing.id!);
+                        
+                        // Add to list of auctions to display
+                        activeAuctions.add(doc);
+                      }
+                    }
+                    
                     return SizedBox(
                       height: 200,
                       child: ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
-                        itemCount: auctions.length,
+                        itemCount: activeAuctions.length,
                         itemBuilder: (context, index) {
-                          final listing = ListingModel.fromFirestore(auctions[index]);
+                          final listing = ListingModel.fromFirestore(activeAuctions[index]);
                           return _buildAuctionCard(listing);
                         },
                       ),
@@ -1126,6 +1145,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     listingId: listing.id!,
                     initialPrice: listing.price,
                     showLabel: false,
+                    showHighestBidder: true,
                   ),
                 ],
               ),

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
 import '../../utils/image_utils.dart';
+import '../../services/firestore_service.dart';
 import 'item_detail_screen.dart';
 import 'auction_detail_screen.dart';
 import 'cart_screen.dart';
@@ -24,6 +25,7 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreService _firestoreService = FirestoreService();
   bool _showAuctions = false;
   String _selectedCategory = 'All Categories';
   final TextEditingController _searchController = TextEditingController();
@@ -225,7 +227,22 @@ class _ShopScreenState extends State<ShopScreen> {
                     }).toList();
                   }
                   
-                  if (documents.isEmpty) {
+                  // Process auctions to check if they're expired
+                  final validDocuments = <DocumentSnapshot>[];
+                  
+                  for (var doc in documents) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final isFixedPrice = data['isFixedPrice'] ?? true;
+                    
+                    // If this is an auction, check its status
+                    if (!isFixedPrice) {
+                      _firestoreService.checkAndUpdateAuctionStatus(doc.id);
+                    }
+                    
+                    validDocuments.add(doc);
+                  }
+                  
+                  if (validDocuments.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -273,9 +290,9 @@ class _ShopScreenState extends State<ShopScreen> {
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),
-                      itemCount: documents.length,
+                      itemCount: validDocuments.length,
                       itemBuilder: (context, index) {
-                        final listing = ListingModel.fromFirestore(documents[index]);
+                        final listing = ListingModel.fromFirestore(validDocuments[index]);
                         return _buildListingCard(listing);
                       },
                     ),
@@ -503,6 +520,7 @@ class _ShopScreenState extends State<ShopScreen> {
                               listingId: listing.id!,
                               initialPrice: listing.price,
                               showLabel: false,
+                              showHighestBidder: true,
                             ),
                         ),
                         if (listing.isFixedPrice) const Spacer(),

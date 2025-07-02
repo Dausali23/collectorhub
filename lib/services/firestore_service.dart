@@ -470,4 +470,35 @@ class FirestoreService {
       return [];
     }
   }
+
+  // Check and update auction status
+  Future<void> checkAndUpdateAuctionStatus(String auctionId) async {
+    try {
+      // Get the auction
+      DocumentSnapshot doc = await _auctionsCollection.doc(auctionId).get();
+      if (!doc.exists) {
+        return;
+      }
+      
+      AuctionModel auction = AuctionModel.fromFirestore(doc);
+      final now = DateTime.now();
+      
+      // If auction is expired but still active, update to ended
+      if (auction.status == AuctionStatus.active && auction.endTime.isBefore(now)) {
+        await _auctionsCollection.doc(auctionId).update({
+          'status': AuctionModel.statusToString(AuctionStatus.ended)
+        });
+      }
+      
+      // If auction was pending but start time has passed, update to active
+      if (auction.status == AuctionStatus.pending && auction.startTime.isBefore(now)) {
+        await _auctionsCollection.doc(auctionId).update({
+          'status': AuctionModel.statusToString(AuctionStatus.active)
+        });
+      }
+    } catch (e) {
+      print('Error checking/updating auction status: $e');
+      rethrow;
+    }
+  }
 } 

@@ -46,6 +46,24 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
         setState(() {
           _auction = auction;
         });
+        
+        // Check if auction has expired but still marked as active
+        if (_auction != null && 
+            _auction!.status == AuctionStatus.active && 
+            _auction!.endTime.isBefore(DateTime.now())) {
+          // Update the auction status to ended
+          await _firestoreService.updateAuction(
+            _auction!.copyWith(status: AuctionStatus.ended)
+          );
+          
+          // Reload the auction data after updating
+          final updatedAuction = await _firestoreService.getAuction(widget.item.id!);
+          if (mounted) {
+            setState(() {
+              _auction = updatedAuction;
+            });
+          }
+        }
       }
     } catch (e) {
       developer.log('Error loading auction data: $e');
@@ -173,6 +191,32 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                                 ),
                               ],
                             ),
+                            
+                            // Highest bidder
+                            if (_auction!.topBidderName != null && _auction!.topBidderName!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Row(
+                                  children: [
+                                    const Text(
+                                      'Highest Bidder:',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      _auction!.topBidderName!,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.deepPurple.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             
                             const SizedBox(height: 8),
                             
