@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../models/listing_model.dart';
+import '../../models/auction_model.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/image_utils.dart';
 import 'add_listing_screen.dart';
@@ -251,37 +252,38 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
           itemBuilder: (context, index) {
             final listing = listings[index];
             return Card(
-              margin: const EdgeInsets.only(bottom: 16),
-              clipBehavior: Clip.antiAlias,
+              margin: const EdgeInsets.only(bottom: 16.0),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Listing image
-                  if (listing.images.isNotEmpty)
-                    AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: _getNetworkImage(
-                        listing.images.first,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  else
-                    AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Container(
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.image, size: 64, color: Colors.grey),
-                        ),
+                  // Image section
+                  Container(
+                    height: 150,
+                    width: double.infinity,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
                       ),
                     ),
+                    child: _getNetworkImage(
+                      listing.images.isNotEmpty ? listing.images[0] : null,
+                      width: double.infinity,
+                      height: 150,
+                    ),
+                  ),
                   
-                  // Listing details
+                  // Content section
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Title and price row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -296,99 +298,217 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Text(
-                              "\$${listing.price.toStringAsFixed(2)}",
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                "RM${listing.price.toStringAsFixed(2)}",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
                             ),
                           ],
                         ),
+                        
                         const SizedBox(height: 8),
-                        Text(
-                          listing.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.grey[700]),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
+                        
+                        // Category and condition
+                        Row(
                           children: [
                             Chip(
-                              label: Text(listing.category),
-                              backgroundColor: Color.fromRGBO(
-                                (Theme.of(context).colorScheme.primary.value >> 16) & 0xFF,
-                                (Theme.of(context).colorScheme.primary.value >> 8) & 0xFF,
-                                Theme.of(context).colorScheme.primary.value & 0xFF,
-                                0.2
+                              label: Text(
+                                '${listing.category} > ${listing.subcategory}',
+                                style: const TextStyle(fontSize: 12),
                               ),
+                              backgroundColor: Colors.grey.shade200,
                               padding: EdgeInsets.zero,
                               visualDensity: VisualDensity.compact,
                             ),
+                            const SizedBox(width: 8),
                             Chip(
-                              label: Text(ListingModel.conditionToString(listing.condition)),
-                              backgroundColor: Color.fromRGBO(
-                                (Theme.of(context).colorScheme.secondary.value >> 16) & 0xFF,
-                                (Theme.of(context).colorScheme.secondary.value >> 8) & 0xFF,
-                                Theme.of(context).colorScheme.secondary.value & 0xFF,
-                                0.2
+                              label: Text(
+                                ListingModel.conditionToString(listing.condition),
+                                style: const TextStyle(fontSize: 12),
                               ),
+                              backgroundColor: _getConditionColor(listing.condition),
                               padding: EdgeInsets.zero,
                               visualDensity: VisualDensity.compact,
                             ),
-                            if (!listing.isFixedPrice)
-                              Chip(
-                                label: const Text("Auction"),
-                                backgroundColor: Color.fromRGBO(
-                                  (Colors.amber.value >> 16) & 0xFF,
-                                  (Colors.amber.value >> 8) & 0xFF,
-                                  Colors.amber.value & 0xFF,
-                                  0.2
-                                ),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                              ),
                           ],
                         ),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Brief description
+                        Text(
+                          listing.description,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        // Add auction-specific information for auction listings
+                        if (!listing.isFixedPrice)
+                          FutureBuilder<AuctionModel?>(
+                            future: _firestoreService.getAuction(listing.id!),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              
+                              if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+                                return const SizedBox.shrink();
+                              }
+                              
+                              final auction = snapshot.data!;
+                              
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Divider
+                                    const Divider(height: 1),
+                                    const SizedBox(height: 12),
+                                    
+                                    // Auction status
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Status: ',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                        _buildStatusChip(auction.status),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 8),
+                                    
+                                    // Current bid
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Current Bid:',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                        Text(
+                                          'RM ${auction.currentPrice.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 8),
+                                    
+                                    // Number of bids
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Total Bids:',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${auction.bidCount}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 8),
+                                    
+                                    // Highest bidder
+                                    if (auction.topBidderName != null && auction.topBidderName!.isNotEmpty)
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Highest Bidder:',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                          Text(
+                                            auction.topBidderName!,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.deepPurple.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         
                         const SizedBox(height: 16),
                         
-                        // Management buttons
+                        // Action buttons
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            ElevatedButton.icon(
+                            TextButton.icon(
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => EditListingScreen(
-                                      listingId: listing.id!,
-                                    ),
+                                    builder: (context) => EditListingScreen(listingId: listing.id!),
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.edit, size: 18),
+                              icon: const Icon(Icons.edit),
                               label: const Text('Edit'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              ),
                             ),
-                            ElevatedButton.icon(
+                            const SizedBox(width: 8),
+                            TextButton.icon(
                               onPressed: () {
                                 _showDeleteConfirmation(listing.id!);
                               },
-                              icon: const Icon(Icons.delete, size: 18),
+                              icon: const Icon(Icons.delete_outline),
                               label: const Text('Delete'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
                               ),
                             ),
                           ],
@@ -403,5 +523,66 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
         );
       },
     );
+  }
+  
+  // Add this helper method to build status chips for auctions
+  Widget _buildStatusChip(AuctionStatus status) {
+    String text;
+    Color bgColor;
+    Color textColor;
+    
+    switch (status) {
+      case AuctionStatus.active:
+        text = 'ACTIVE';
+        bgColor = Colors.green.shade100;
+        textColor = Colors.green.shade700;
+        break;
+      case AuctionStatus.pending:
+        text = 'PENDING';
+        bgColor = Colors.orange.shade100;
+        textColor = Colors.orange.shade700;
+        break;
+      case AuctionStatus.ended:
+        text = 'ENDED';
+        bgColor = Colors.grey.shade200;
+        textColor = Colors.grey.shade700;
+        break;
+      case AuctionStatus.cancelled:
+        text = 'CANCELLED';
+        bgColor = Colors.red.shade100;
+        textColor = Colors.red.shade700;
+        break;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+  
+  Color _getConditionColor(CollectibleCondition condition) {
+    switch (condition) {
+      case CollectibleCondition.mint:
+        return Colors.green.shade100;
+      case CollectibleCondition.nearMint:
+        return Colors.lightGreen.shade100;
+      case CollectibleCondition.excellent:
+        return Colors.lime.shade100;
+      case CollectibleCondition.good:
+        return Colors.amber.shade100;
+      case CollectibleCondition.poor:
+        return Colors.orange.shade100;
+    }
   }
 } 

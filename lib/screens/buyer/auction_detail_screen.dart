@@ -424,7 +424,7 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                         child: ElevatedButton(
                           onPressed: _isPlacingBid || _auction!.status != AuctionStatus.active
                               ? null
-                              : () => _placeBid(_auction!.currentPrice + _auction!.bidIncrement),
+                              : () => _showBidConfirmationDialog(_auction!.currentPrice + _auction!.bidIncrement),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -538,7 +538,7 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                 double? amount = double.tryParse(_customBidController.text);
                 if (amount != null && amount >= _auction!.currentPrice + _auction!.bidIncrement) {
                   Navigator.pop(context);
-                  _placeBid(amount);
+                  _showBidConfirmationDialog(amount);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -550,11 +550,61 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                   );
                 }
               },
-              child: const Text('Bid'),
+              child: const Text('Proceed'),
             ),
           ],
         );
       },
+    );
+  }
+  
+  void _showBidConfirmationDialog(double bidAmount) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Your Bid'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('You are about to place a bid of:'),
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                'RM ${bidAmount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone. Are you sure you want to proceed?',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _placeBid(bidAmount);
+            },
+            child: const Text('Confirm Bid'),
+          ),
+        ],
+      ),
     );
   }
   
