@@ -5,7 +5,7 @@ import '../models/user_model.dart';
 import '../screens/admin/auth/auth_screen.dart';
 import '../screens/buyer/buyer_main_screen.dart';
 import '../screens/seller/seller_main_screen.dart';
-import '../screens/admin/admin_home_screen.dart';
+import '../screens/admin/admin_main_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -29,8 +29,8 @@ class AuthWrapper extends StatelessWidget {
     // Route based on user role
     switch (user.role) {
       case UserRole.admin:
-        developer.log('Navigating to AdminHomeScreen');
-        homeScreen = AdminHomeScreen(user: user);
+        developer.log('Navigating to AdminMainScreen');
+        homeScreen = AdminMainScreen(user: user);
         break;
       case UserRole.seller:
         developer.log('Navigating to SellerMainScreen');

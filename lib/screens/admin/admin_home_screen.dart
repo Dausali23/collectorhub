@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 
@@ -12,26 +13,116 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _auth = AuthService();
   
-  // Sample data
-  final List<Map<String, dynamic>> _recentUsers = [
-    {
-      'name': 'User 1',
-      'email': 'user1@example.com',
-      'joined': '2 days ago',
-    },
-    {
-      'name': 'User 2',
-      'email': 'user2@example.com',
-      'joined': '5 days ago',
-    },
-    {
-      'name': 'User 3',
-      'email': 'user3@example.com',
-      'joined': '1 week ago',
-    },
-  ];
+  // Statistics
+  int _totalUsers = 0;
+  int _totalBuyers = 0;
+  int _totalSellers = 0;
+  int _totalItems = 0;
+  int _totalAuctions = 0;
+  int _totalGatherings = 0;
+  bool _isLoading = true;
+  
+  // Sample data for recent users
+  final List<Map<String, dynamic>> _recentUsers = [];
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadStatistics();
+  }
+  
+  Future<void> _loadStatistics() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // Get user counts
+      final usersQuery = await _firestore.collection('users').get();
+      _totalUsers = usersQuery.docs.length;
+      
+      _totalBuyers = usersQuery.docs.where((doc) {
+        final data = doc.data();
+        return data['role'] == 'buyer';
+      }).length;
+      
+      _totalSellers = usersQuery.docs.where((doc) {
+        final data = doc.data();
+        return data['role'] == 'seller';
+      }).length;
+      
+      // Get items count
+      final itemsQuery = await _firestore.collection('listings')
+          .where('isFixedPrice', isEqualTo: true)
+          .get();
+      _totalItems = itemsQuery.docs.length;
+      
+      // Get auctions count
+      final auctionsQuery = await _firestore.collection('listings')
+          .where('isFixedPrice', isEqualTo: false)
+          .get();
+      _totalAuctions = auctionsQuery.docs.length;
+      
+      // Gatherings would be implemented in the future
+      _totalGatherings = 0;
+      
+      // Get recent users
+      final recentUsersQuery = await _firestore.collection('users')
+          .orderBy('createdAt', descending: true)
+          .limit(5)
+          .get();
+      
+      final List<Map<String, dynamic>> loadedUsers = [];
+      
+      for (var doc in recentUsersQuery.docs) {
+        final data = doc.data();
+        
+        // Skip the current admin user
+        if (doc.id == widget.user.uid) continue;
+        
+        final createdAt = data['createdAt'] as Timestamp?;
+        String joinedDate = 'Unknown date';
+        
+        if (createdAt != null) {
+          final now = DateTime.now();
+          final joinDate = createdAt.toDate();
+          final difference = now.difference(joinDate);
+          
+          if (difference.inDays > 0) {
+            joinedDate = '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
+          } else if (difference.inHours > 0) {
+            joinedDate = '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
+          } else {
+            joinedDate = '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+          }
+        }
+        
+        loadedUsers.add({
+          'name': data['displayName'] ?? 'Unknown',
+          'email': data['email'] ?? 'No email',
+          'joined': joinedDate,
+          'role': data['role'] ?? 'buyer',
+        });
+      }
+      
+      setState(() {
+        _recentUsers.clear();
+        _recentUsers.addAll(loadedUsers);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading statistics: $e')),
+      );
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -49,125 +140,132 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Admin header info
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.deepPurple,
-                  child: Icon(Icons.admin_panel_settings, size: 30, color: Colors.white),
-                ),
-                const SizedBox(width: 16),
-                Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadStatistics,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Welcome, Admin',
-                      style: const TextStyle(
-                        fontSize: 20,
+                    // Admin header info
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.deepPurple,
+                          child: Icon(Icons.admin_panel_settings, size: 30, color: Colors.white),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome, Admin',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              widget.user.email,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    
+                    const Divider(height: 40),
+                    
+                    // Dashboard stats
+                    const Text(
+                      'Dashboard Overview',
+                      style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      widget.user.email,
-                      style: const TextStyle(color: Colors.grey),
+                    const SizedBox(height: 16),
+                    
+                    // Users statistics
+                    _buildSectionTitle('Users'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: _buildStatCard('Total Users', _totalUsers.toString(), Icons.people, Colors.blue)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildStatCard('Buyers', _totalBuyers.toString(), Icons.shopping_cart, Colors.green)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildStatCard('Sellers', _totalSellers.toString(), Icons.store, Colors.orange)),
+                      ],
                     ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Items & Activities statistics
+                    _buildSectionTitle('Content'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: _buildStatCard('Items', _totalItems.toString(), Icons.category, Colors.purple)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildStatCard('Auctions', _totalAuctions.toString(), Icons.gavel, Colors.red)),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildStatCard('Gatherings', _totalGatherings.toString(), Icons.event, Colors.teal)),
+                      ],
+                    ),
+                    
+                    const Divider(height: 40),
+                    
+                    // Recent users
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Recent Users',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            // Switch to manage users tab
+                            // This will be handled by bottom navigation now
+                          },
+                          icon: const Icon(Icons.people),
+                          label: const Text('View All'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // User list
+                    if (_recentUsers.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('No recent users found'),
+                        ),
+                      )
+                    else
+                      ...(_recentUsers.map((user) => _buildUserListItem(user))),
                   ],
                 ),
-              ],
-            ),
-            
-            const Divider(height: 40),
-            
-            // Dashboard stats
-            const Text(
-              'Dashboard Overview',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(child: _buildStatCard('Total Users', '124', Icons.people, Colors.blue)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildStatCard('Collections', '48', Icons.collections, Colors.green)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(child: _buildStatCard('Items', '1,205', Icons.category, Colors.orange)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildStatCard('Reports', '5', Icons.flag, Colors.red)),
-              ],
-            ),
-            
-            const Divider(height: 40),
-            
-            // Recent users
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Recent Users',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // View all users
-                  },
-                  child: const Text('View All'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // User list
-            ..._recentUsers.map((user) => _buildUserListItem(user)),
-            
-            const Divider(height: 40),
-            
-            // Action buttons
-            ElevatedButton.icon(
-              onPressed: () {
-                // Implement manage collections
-              },
-              icon: const Icon(Icons.collections),
-              label: const Text('Manage Collections'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                minimumSize: const Size(double.infinity, 50),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Implement user management
-              },
-              icon: const Icon(Icons.people),
-              label: const Text('Manage Users'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                minimumSize: const Size(double.infinity, 50),
-              ),
-            ),
-          ],
-        ),
+    );
+  }
+  
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.grey,
       ),
     );
   }
@@ -179,7 +277,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(77), // 0.3 * 255 ≈ 77
+            color: Colors.grey.withOpacity(0.3),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 3),
@@ -215,17 +313,58 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
   
   Widget _buildUserListItem(Map<String, dynamic> user) {
-    return ListTile(
-      leading: const CircleAvatar(
-        backgroundColor: Colors.deepPurple,
-        child: Icon(Icons.person, color: Colors.white),
+    final String role = user['role'] ?? 'buyer';
+    final Color roleColor = _getRoleColor(role);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: roleColor.withOpacity(0.2),
+          child: Icon(Icons.person, color: roleColor),
+        ),
+        title: Text(user['name']),
+        subtitle: Text(user['email']),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              user['joined'],
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: roleColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                role.toUpperCase(),
+                style: TextStyle(
+                  color: roleColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      title: Text(user['name']),
-      subtitle: Text(user['email']),
-      trailing: Text(user['joined']),
-      onTap: () {
-        // View user details
-      },
     );
+  }
+  
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return Colors.red;
+      case 'seller':
+        return Colors.blue;
+      case 'buyer':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
   }
 } 

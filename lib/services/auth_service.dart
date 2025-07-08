@@ -25,7 +25,7 @@ class AuthService {
     final Map<String, UserRole> hardcodedRoles = {
       'seller1@gmail.com': UserRole.seller,
       'seller2@gmail.com': UserRole.seller,
-      'admin@gmail.com': UserRole.admin,
+      'admin123@gmail.com': UserRole.admin,
     };
     
     // Check if the user's email matches any hardcoded values
