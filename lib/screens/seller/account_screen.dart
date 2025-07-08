@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
+import '../../models/listing_model.dart';
+import '../../models/purchase_model.dart';
 import '../../services/auth_service.dart';
 import '../edit_profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -300,31 +302,80 @@ class _AccountScreenState extends State<AccountScreen> {
   }
   
   Widget _buildStatsRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem(
-            value: '12',
-            label: 'Active Listings',
-            iconData: Icons.local_offer,
-            color: Colors.blue,
-          ),
-          _buildStatItem(
-            value: '5',
-            label: 'Auctions',
-            iconData: Icons.gavel,
-            color: Colors.orange,
-          ),
-          _buildStatItem(
-            value: '28',
-            label: 'Sales',
-            iconData: Icons.shopping_cart,
-            color: Colors.green,
-          ),
-        ],
-      ),
+    // Get the current user to display
+    final UserModel user = _refreshedUser ?? widget.user;
+    
+    return StreamBuilder<List<ListingModel>>(
+      stream: _firestore.collection('listings')
+          .where('sellerId', isEqualTo: user.uid)
+          .where('isAvailable', isEqualTo: true)
+          .snapshots()
+          .map((snapshot) => snapshot.docs
+              .map((doc) => ListingModel.fromFirestore(doc))
+              .toList()),
+      builder: (context, listingsSnapshot) {
+        // Handle loading state
+        if (listingsSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        // Get the listings that are available
+        final allListings = listingsSnapshot.data ?? [];
+        
+        // Filter fixed price listings and auctions with null safety
+        final fixedPriceListings = allListings
+            .where((listing) => listing.isFixedPrice == true)
+            .toList();
+        final auctions = allListings
+            .where((listing) => listing.isFixedPrice == false)
+            .toList();
+        
+        // Fetch completed sales
+        return StreamBuilder<List<PurchaseModel>>(
+          stream: _firestore.collection('purchases')
+              .where('sellerId', isEqualTo: user.uid)
+              .where('status', isEqualTo: PurchaseModel.statusToString(PurchaseStatus.completed))
+              .snapshots()
+              .map((snapshot) => snapshot.docs
+                  .map((doc) => PurchaseModel.fromFirestore(doc))
+                  .toList()),
+          builder: (context, salesSnapshot) {
+            // Handle loading state for sales
+            if (salesSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            final completedSales = salesSnapshot.data ?? [];
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildStatItem(
+                    value: fixedPriceListings.length.toString(),
+                    label: 'Active Listings',
+                    iconData: Icons.local_offer,
+                    color: Colors.blue,
+                  ),
+                  _buildStatItem(
+                    value: auctions.length.toString(),
+                    label: 'Auctions',
+                    iconData: Icons.gavel,
+                    color: Colors.orange,
+                  ),
+                  _buildStatItem(
+                    value: completedSales.length.toString(),
+                    label: 'Sales',
+                    iconData: Icons.shopping_cart,
+                    color: Colors.green,
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
   

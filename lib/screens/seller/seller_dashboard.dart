@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
-import '../../models/listing_model.dart';
 import '../../models/purchase_model.dart';
-import '../../models/auction_model.dart';
-import '../../services/firestore_service.dart';
 import '../../services/cart_service.dart';
-import '../../utils/image_utils.dart';
 import 'dart:developer' as developer;
-import 'add_listing_screen.dart';
-import 'edit_listing_screen.dart';
-import 'create_auction_screen.dart';
 import 'orders_screen.dart';
 import 'order_detail_screen.dart';
 import 'seller_main_screen.dart';
@@ -24,7 +17,6 @@ class SellerDashboard extends StatefulWidget {
 }
 
 class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProviderStateMixin {
-  final FirestoreService _firestoreService = FirestoreService();
   final CartService _cartService = CartService();
   late TabController _tabController;
   
@@ -51,32 +43,6 @@ class _SellerDashboardState extends State<SellerDashboard> with SingleTickerProv
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  // Add image handling method (handles both network and base64 images)
-  Widget _getNetworkImage(
-    String? imageUrl, {
-    BoxFit fit = BoxFit.cover,
-    double? width,
-    double? height,
-  }) {
-    if (imageUrl == null || imageUrl.isEmpty) {
-      return Container(
-        width: width,
-        height: height,
-        color: Colors.grey[300],
-        child: const Center(
-          child: Icon(Icons.image, size: 64, color: Colors.grey),
-        ),
-      );
-    }
-
-    return ImageUtils.getImageWidget(
-      imageUrl,
-      width: width,
-      height: height,
-      fit: fit,
-    );
   }
 
   @override

@@ -455,7 +455,7 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
                                     
                                     const SizedBox(height: 8),
                                     
-                                    // Highest bidder
+                                                                        // Highest bidder
                                     if (auction.topBidderName != null && auction.topBidderName!.isNotEmpty)
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -467,12 +467,57 @@ class _SellerCollectiblesScreenState extends State<SellerCollectiblesScreen> wit
                                               color: Colors.grey.shade700,
                                             ),
                                           ),
-                                          Text(
-                                            auction.topBidderName!,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.deepPurple.shade700,
-                                            ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                auction.topBidderName!,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.deepPurple.shade700,
+                                                ),
+                                              ),
+                                              // Message button - only shown for ended auctions
+                                              if (auction.status == AuctionStatus.ended && auction.topBidderId != null)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(left: 8.0),
+                                                  child: InkWell(
+                                                    onTap: () {
+                                                      // Message functionality placeholder for now
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text('Message functionality coming soon'),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.blue.shade100,
+                                                        borderRadius: BorderRadius.circular(12),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.message_outlined, 
+                                                            size: 16, 
+                                                            color: Colors.blue.shade700,
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'Message',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: Colors.blue.shade700,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),
