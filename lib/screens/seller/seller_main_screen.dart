@@ -3,6 +3,7 @@ import '../../models/user_model.dart';
 import 'seller_dashboard.dart';
 import 'account_screen.dart';
 import 'seller_collectibles_screen.dart';
+import 'seller_events_screen.dart';
 
 class SellerMainScreen extends StatefulWidget {
   final UserModel user;
@@ -40,6 +41,7 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
             _selectedIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -48,6 +50,10 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.collections),
             label: 'Collectibles',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event),
+            label: 'Events',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat),
@@ -68,9 +74,11 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
         return SellerDashboard(user: widget.user);
       case 1: // Collectibles 
         return SellerCollectiblesScreen(user: widget.user);
-      case 2: // Messages
+      case 2: // Events
+        return SellerEventsScreen(user: widget.user);
+      case 3: // Messages
         return _placeholderPage('Messages');
-      case 3: // Profile
+      case 4: // Profile
         return _profilePage();
       default:
         return SellerDashboard(user: widget.user);

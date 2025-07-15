@@ -4,6 +4,7 @@ import './buyer_home_screen.dart';
 import './shop_screen.dart';
 import './activity_screen.dart';
 import './account_screen.dart';
+import './buyer_events_screen.dart';
 
 class BuyerMainScreen extends StatefulWidget {
   final UserModel user;
@@ -24,6 +25,7 @@ class _BuyerMainScreenState extends State<BuyerMainScreen> {
     _screens = [
       BuyerHomeScreen(user: widget.user),
       ShopScreen(user: widget.user),
+      BuyerEventsScreen(user: widget.user),
       ActivityScreen(user: widget.user),
       AccountScreen(user: widget.user),
     ];
@@ -64,6 +66,10 @@ class _BuyerMainScreenState extends State<BuyerMainScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.shopping_bag),
               label: 'Shop',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.event),
+              label: 'Events',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.notifications_outlined),

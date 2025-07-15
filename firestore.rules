@@ -35,6 +35,24 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.sellerId == request.auth.uid;
     }
     
+    // Events rules
+    match /events/{eventId} {
+      allow read: if true; // Anyone can read events
+      // Any authenticated user can create events (later can be restricted to admin only)
+      allow create: if request.auth != null;
+      
+      // Allow updates if user is creator OR if user is joining/leaving an event
+      allow update: if request.auth != null && (
+        // Creator can update anything
+        resource.data.createdBy == request.auth.uid ||
+        // Users can only update attendance-related fields
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees', 'currentAttendees'])
+      );
+      
+      // Only creator can delete events
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
+    
     // Bids rules
     match /bids/{bidId} {
       allow read: if true; // Anyone can read bids

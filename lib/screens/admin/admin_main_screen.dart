@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import 'admin_home_screen.dart';
 import 'admin_manage_screen.dart';
-import 'admin_gatherings_screen.dart';
+import 'admin_events_screen.dart';
 
 class AdminMainScreen extends StatefulWidget {
   final UserModel user;
@@ -23,7 +23,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     _screens = [
       AdminHomeScreen(user: widget.user),
       AdminManageScreen(user: widget.user),
-      AdminGatheringsScreen(user: widget.user),
+      AdminEventsScreen(user: widget.user),
     ];
   }
   
@@ -53,7 +53,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.event),
-            label: 'Gatherings',
+            label: 'Events',
           ),
         ],
       ),

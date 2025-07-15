@@ -22,7 +22,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int _totalSellers = 0;
   int _totalItems = 0;
   int _totalAuctions = 0;
-  int _totalGatherings = 0;
+  int _totalEvents = 0;
   bool _isLoading = true;
   
   // Sample data for recent users
@@ -66,8 +66,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           .get();
       _totalAuctions = auctionsQuery.docs.length;
       
-      // Gatherings would be implemented in the future
-      _totalGatherings = 0;
+      // Events would be implemented in the future
+      _totalEvents = 0;
       
       // Get recent users
       final recentUsersQuery = await _firestore.collection('users')
@@ -213,7 +213,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         const SizedBox(width: 16),
                         Expanded(child: _buildStatCard('Auctions', _totalAuctions.toString(), Icons.gavel, Colors.red)),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildStatCard('Gatherings', _totalGatherings.toString(), Icons.event, Colors.teal)),
+                        Expanded(child: _buildStatCard('Events', _totalEvents.toString(), Icons.event, Colors.teal)),
                       ],
                     ),
                     

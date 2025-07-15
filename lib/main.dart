@@ -5,11 +5,15 @@ import 'firebase_options.dart';
 import 'models/user_model.dart';
 import 'services/auth_service.dart';
 import 'services/auth_wrapper.dart';
+import 'services/maps_service.dart';
 import 'dart:developer' as developer;
 
-void main() {
+void main() async {
   // Ensure Flutter is initialized before doing anything else
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Google Maps
+  MapsService.initialize();
   
   // Run the app with a FutureBuilder to handle Firebase initialization
   runApp(const AppInitializer());

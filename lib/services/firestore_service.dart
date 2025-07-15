@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/listing_model.dart';
 import '../models/user_model.dart';
 import '../models/auction_model.dart';
+import '../models/event_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -15,6 +16,8 @@ class FirestoreService {
       FirebaseFirestore.instance.collection('auctions');
   final CollectionReference _bidsCollection = 
       FirebaseFirestore.instance.collection('bids');
+  final CollectionReference _eventsCollection =
+      FirebaseFirestore.instance.collection('events');
   
   // Save user data to Firestore
   Future<void> saveUserData(UserModel user) async {
@@ -500,5 +503,180 @@ class FirestoreService {
       print('Error checking/updating auction status: $e');
       rethrow;
     }
+  }
+
+  // EVENTS METHODS
+  
+  // Create a new event
+  Future<String> createEvent(EventModel event) async {
+    try {
+      DocumentReference docRef = await _eventsCollection.add(event.toMap());
+      return docRef.id;
+    } catch (e) {
+      print('Error creating event: $e');
+      rethrow;
+    }
+  }
+  
+  // Get a specific event by ID
+  Future<EventModel?> getEvent(String eventId) async {
+    try {
+      DocumentSnapshot doc = await _eventsCollection.doc(eventId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      return EventModel.fromFirestore(doc);
+    } catch (e) {
+      print('Error getting event: $e');
+      rethrow;
+    }
+  }
+  
+  // Get a stream of events
+  Stream<List<EventModel>> getEvents({
+    String? createdBy,
+    EventStatus? status,
+    bool onlyUpcoming = true,
+  }) {
+    Query query = _eventsCollection;
+    
+    if (createdBy != null) {
+      query = query.where('createdBy', isEqualTo: createdBy);
+    }
+    
+    if (status != null) {
+      query = query.where('status', isEqualTo: EventModel.statusToString(status));
+    }
+    
+    if (onlyUpcoming) {
+      // Only show events whose date is in the future
+      query = query.where('eventDate', isGreaterThan: Timestamp.fromDate(DateTime.now()));
+    }
+    
+    return query
+        .orderBy('eventDate')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => EventModel.fromFirestore(doc))
+            .toList());
+  }
+  
+  // Update an event
+  Future<void> updateEvent(EventModel event) async {
+    try {
+      await _eventsCollection.doc(event.id).update(event.toMap());
+    } catch (e) {
+      print('Error updating event: $e');
+      rethrow;
+    }
+  }
+  
+  // Delete an event
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      await _eventsCollection.doc(eventId).delete();
+    } catch (e) {
+      print('Error deleting event: $e');
+      rethrow;
+    }
+  }
+  
+  // Join an event (add user to attendees list)
+  Future<void> joinEvent(String eventId, String userId) async {
+    try {
+      // Start a Firestore transaction for atomic operations
+      await _firestore.runTransaction((transaction) async {
+        // Get the current event data
+        DocumentSnapshot eventSnapshot = await transaction.get(_eventsCollection.doc(eventId));
+        if (!eventSnapshot.exists) {
+          throw Exception("Event not found");
+        }
+        
+        final eventData = eventSnapshot.data() as Map<String, dynamic>;
+        final int currentAttendees = eventData['currentAttendees'] ?? 0;
+        final int minAttendees = eventData['minAttendees'] ?? 0;
+        final String status = eventData['status'] ?? 'pending';
+        
+        // Check if user is already in the attendees list
+        final List<dynamic> attendees = eventData['attendees'] ?? [];
+        if (attendees.contains(userId)) {
+          return; // User already joined
+        }
+        
+        // Update the event with the new attendee
+        final int newAttendeeCount = currentAttendees + 1;
+        
+        // Update status to 'confirmed' if meeting minimum requirements
+        String newStatus = status;
+        if (status.toLowerCase() == 'pending' && newAttendeeCount >= minAttendees) {
+          newStatus = 'confirmed';
+        }
+        
+        // Update the document
+        transaction.update(_eventsCollection.doc(eventId), {
+          'attendees': FieldValue.arrayUnion([userId]),
+          'currentAttendees': newAttendeeCount,
+          'status': newStatus,
+        });
+      });
+    } catch (e) {
+      print('Error joining event: $e');
+      rethrow;
+    }
+  }
+  
+  // Leave an event (remove user from attendees list)
+  Future<void> leaveEvent(String eventId, String userId) async {
+    try {
+      // Start a Firestore transaction for atomic operations
+      await _firestore.runTransaction((transaction) async {
+        // Get the current event data
+        DocumentSnapshot eventSnapshot = await transaction.get(_eventsCollection.doc(eventId));
+        if (!eventSnapshot.exists) {
+          throw Exception("Event not found");
+        }
+        
+        final eventData = eventSnapshot.data() as Map<String, dynamic>;
+        final int currentAttendees = eventData['currentAttendees'] ?? 0;
+        final int minAttendees = eventData['minAttendees'] ?? 0;
+        final String status = eventData['status'] ?? 'pending';
+        
+        // Check if user is in the attendees list
+        final List<dynamic> attendees = eventData['attendees'] ?? [];
+        if (!attendees.contains(userId)) {
+          return; // User not in attendee list
+        }
+        
+        // Update the event removing the attendee
+        final int newAttendeeCount = currentAttendees > 0 ? currentAttendees - 1 : 0;
+        
+        // Update status back to 'pending' if falling below minimum requirements
+        String newStatus = status;
+        if (status.toLowerCase() == 'confirmed' && newAttendeeCount < minAttendees) {
+          newStatus = 'pending';
+        }
+        
+        // Update the document
+        transaction.update(_eventsCollection.doc(eventId), {
+          'attendees': FieldValue.arrayRemove([userId]),
+          'currentAttendees': newAttendeeCount,
+          'status': newStatus,
+        });
+      });
+    } catch (e) {
+      print('Error leaving event: $e');
+      rethrow;
+    }
+  }
+  
+  // Get all events a user is attending
+  Stream<List<EventModel>> getUserAttendingEvents(String userId) {
+    return _eventsCollection
+      .where('attendees', arrayContains: userId)
+      .orderBy('eventDate')
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+        .map((doc) => EventModel.fromFirestore(doc))
+        .toList());
   }
 } 
