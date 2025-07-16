@@ -39,18 +39,45 @@ class _SellerEventsScreenState extends State<SellerEventsScreen> {
       _isLoading = true;
     });
     
-    // Subscribe to upcoming events stream
-    _eventsSubscription = _firestoreService.getEvents(
-      onlyUpcoming: true,
-    ).listen((events) {
-      setState(() {
-        _upcomingEvents = events;
-        _isLoading = false;
+    // Check and update any events with passed deadlines and insufficient attendees
+    _firestoreService.checkAndUpdatePendingEvents().then((_) {
+      // After updating events, subscribe to the stream
+      _eventsSubscription = _firestoreService.getEvents(
+        onlyUpcoming: true,
+      ).listen((events) {
+        if (mounted) {
+          setState(() {
+            _upcomingEvents = events;
+            _isLoading = false;
+          });
+        }
+      }, onError: (error) {
+        print('Error loading upcoming events: $error');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       });
-    }, onError: (error) {
-      print('Error loading upcoming events: $error');
-      setState(() {
-        _isLoading = false;
+    }).catchError((error) {
+      print('Error checking pending events: $error');
+      // Still load events even if check fails
+      _eventsSubscription = _firestoreService.getEvents(
+        onlyUpcoming: true,
+      ).listen((events) {
+        if (mounted) {
+          setState(() {
+            _upcomingEvents = events;
+            _isLoading = false;
+          });
+        }
+      }, onError: (error) {
+        print('Error loading upcoming events: $error');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       });
     });
   }
@@ -185,11 +212,23 @@ class _SellerEventsScreenState extends State<SellerEventsScreen> {
                                   'Due: ${DateFormat('MMM d').format(event.registrationDeadline)}',
                                   Colors.deepPurple,
                                 ),
+                                if (event.status == EventStatus.canceled)
+                                  _buildInfoChip(
+                                    Icons.cancel,
+                                    'Canceled',
+                                    Colors.red,
+                                  ),
+                                if (event.status == EventStatus.confirmed)
+                                  _buildInfoChip(
+                                    Icons.check_circle,
+                                    'Confirmed',
+                                    Colors.green,
+                                  ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
-                          if (event.registrationDeadline.isAfter(DateTime.now()))
+                          if (event.registrationDeadline.isAfter(DateTime.now()) && event.status != EventStatus.canceled)
                             SizedBox(
                               height: 32,
                               child: hasJoined 

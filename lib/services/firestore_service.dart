@@ -679,4 +679,49 @@ class FirestoreService {
         .map((doc) => EventModel.fromFirestore(doc))
         .toList());
   }
+  
+  // Check and update events with passed registration deadlines
+  Future<void> checkAndUpdatePendingEvents() async {
+    try {
+      final now = DateTime.now();
+      
+      // Query for pending events with passed deadlines
+      final querySnapshot = await _eventsCollection
+        .where('status', isEqualTo: EventModel.statusToString(EventStatus.pending))
+        .where('registrationDeadline', isLessThan: Timestamp.fromDate(now))
+        .get();
+        
+      // Batch updates for better performance
+      final batch = _firestore.batch();
+      int updatedCount = 0;
+      
+      // Process each pending event with passed deadline
+      for (final doc in querySnapshot.docs) {
+        final Map<String, dynamic>? eventData = doc.data() as Map<String, dynamic>?;
+        if (eventData != null) {
+          final int currentAttendees = eventData['currentAttendees'] as int? ?? 0;
+          final int minAttendees = eventData['minAttendees'] as int? ?? 0;
+          
+          // If minimum attendance not met, cancel the event
+          if (currentAttendees < minAttendees) {
+            batch.update(doc.reference, {
+              'status': EventModel.statusToString(EventStatus.canceled)
+            });
+            updatedCount++;
+          }
+        }
+      }
+      
+      // Commit the batch if there are updates
+      if (updatedCount > 0) {
+        await batch.commit();
+        print('Updated $updatedCount events to canceled status');
+      }
+      
+      return;
+    } catch (e) {
+      print('Error checking/updating events: $e');
+      rethrow;
+    }
+  }
 } 
