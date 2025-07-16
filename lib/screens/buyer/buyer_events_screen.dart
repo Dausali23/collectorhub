@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../models/event_model.dart';
+import '../../services/maps_service.dart';
 
 class BuyerEventsScreen extends StatefulWidget {
   final UserModel user;
@@ -321,28 +323,55 @@ class _BuyerEventsScreenState extends State<BuyerEventsScreen> {
                       Text(event.location),
                       const SizedBox(height: 16),
                       if (event.locationLat != 0 && event.locationLng != 0)
-                        Container(
-                          height: 200,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: GoogleMap(
-                              initialCameraPosition: CameraPosition(
-                                target: event.getLocation(),
-                                zoom: 15,
-                              ),
-                              markers: {
-                                Marker(
-                                  markerId: MarkerId(event.id ?? ''),
-                                  position: event.getLocation(),
-                                  infoWindow: InfoWindow(title: event.name),
+                        Column(
+                          children: [
+                            Container(
+                              height: 200,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: GoogleMap(
+                                  initialCameraPosition: CameraPosition(
+                                    target: event.getLocation(),
+                                    zoom: 15,
+                                  ),
+                                  markers: {
+                                    Marker(
+                                      markerId: MarkerId(event.id ?? ''),
+                                      position: event.getLocation(),
+                                      infoWindow: InfoWindow(title: event.name),
+                                    ),
+                                  },
+                                  zoomControlsEnabled: false,
+                                  mapToolbarEnabled: true,
+                                  myLocationButtonEnabled: false,
                                 ),
-                              },
-                              zoomControlsEnabled: false,
-                              mapToolbarEnabled: true,
-                              myLocationButtonEnabled: false,
+                              ),
                             ),
-                          ),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                try {
+                                  await MapsService.openDirections(
+                                    event.locationLat,
+                                    event.locationLng,
+                                  );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Could not open directions: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.directions),
+                              label: const Text('Get Directions'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                         ),
                       const Text(
                         'About this event',

@@ -7,6 +7,7 @@ import 'package:geocoding/geocoding.dart';
 import 'dart:async';
 import '../../services/firestore_service.dart';
 import '../../models/event_model.dart';
+import '../../services/maps_service.dart';
 
 class AdminEventsScreen extends StatefulWidget {
   final UserModel user;
@@ -179,30 +180,59 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
                       ],
                     ),
                     if (event.locationLat != 0 && event.locationLng != 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: SizedBox(
-                          height: 150,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: GoogleMap(
-                              initialCameraPosition: CameraPosition(
-                                target: event.getLocation(),
-                                zoom: 15,
-                              ),
-                              markers: {
-                                Marker(
-                                  markerId: MarkerId(event.id ?? ''),
-                                  position: event.getLocation(),
-                                  infoWindow: InfoWindow(title: event.name),
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: SizedBox(
+                              height: 150,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: GoogleMap(
+                                  initialCameraPosition: CameraPosition(
+                                    target: event.getLocation(),
+                                    zoom: 15,
+                                  ),
+                                  markers: {
+                                    Marker(
+                                      markerId: MarkerId(event.id ?? ''),
+                                      position: event.getLocation(),
+                                      infoWindow: InfoWindow(title: event.name),
+                                    ),
+                                  },
+                                  zoomControlsEnabled: false,
+                                  mapToolbarEnabled: false,
+                                  myLocationButtonEnabled: false,
                                 ),
-                              },
-                              zoomControlsEnabled: false,
-                              mapToolbarEnabled: false,
-                              myLocationButtonEnabled: false,
+                              ),
                             ),
                           ),
-                        ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                try {
+                                  await MapsService.openDirections(
+                                    event.locationLat,
+                                    event.locationLng,
+                                  );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Could not open directions: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.directions),
+                              label: const Text('Get Directions'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     const SizedBox(height: 16),
                     Text(event.description),
