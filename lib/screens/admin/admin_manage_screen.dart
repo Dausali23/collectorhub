@@ -363,6 +363,92 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
     }
   }
   
+  Future<void> _editUser(Map<String, dynamic> user) async {
+    final TextEditingController nameController = TextEditingController(text: user['name']);
+    final TextEditingController emailController = TextEditingController(text: user['email']);
+    String selectedRole = user['role'];
+    
+    final bool? result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit User'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              enabled: false, // Email should not be editable
+            ),
+            const SizedBox(height: 15),
+            DropdownButtonFormField<String>(
+              value: selectedRole,
+              decoration: const InputDecoration(labelText: 'Role'),
+              items: const [
+                DropdownMenuItem(value: 'buyer', child: Text('Buyer')),
+                DropdownMenuItem(value: 'seller', child: Text('Seller')),
+                DropdownMenuItem(value: 'admin', child: Text('Admin')),
+              ],
+              onChanged: (value) {
+                selectedRole = value!;
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result != true) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await _firestore.collection('users').doc(user['id']).update({
+        'displayName': nameController.text.trim(),
+        'role': selectedRole,
+      });
+      
+      setState(() {
+        // Update local list
+        final index = _users.indexWhere((u) => u['id'] == user['id']);
+        if (index != -1) {
+          _users[index]['name'] = nameController.text.trim();
+          _users[index]['role'] = selectedRole;
+        }
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User updated successfully')),
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating user: $e')),
+      );
+    }
+  }
+  
   // Filtered lists
   List<Map<String, dynamic>> get _filteredUsers {
     if (_userSearchQuery.isEmpty) return _users;
@@ -506,6 +592,10 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
                                       fontSize: 12,
                                     ),
                                   ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () => _editUser(user),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red),

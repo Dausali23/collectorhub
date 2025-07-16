@@ -21,9 +21,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _displayNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneNumberController;
+  late TextEditingController _currentPasswordController;
+  late TextEditingController _newPasswordController;
+  late TextEditingController _confirmPasswordController;
   
   bool _isLoading = false;
   String _errorMessage = '';
+  bool _showPasswordFields = false;
   
   @override
   void initState() {
@@ -31,6 +35,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _displayNameController = TextEditingController(text: widget.user.displayName ?? '');
     _emailController = TextEditingController(text: widget.user.email);
     _phoneNumberController = TextEditingController(text: widget.user.phoneNumber ?? '');
+    _currentPasswordController = TextEditingController();
+    _newPasswordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
   }
   
   @override
@@ -38,6 +45,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _displayNameController.dispose();
     _emailController.dispose();
     _phoneNumberController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
   
@@ -60,11 +70,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final currentUser = _auth.currentUser;
       if (currentUser != null) {
         await currentUser.updateDisplayName(_displayNameController.text.trim());
+        
+        // Change password if requested
+        if (_showPasswordFields && 
+            _currentPasswordController.text.isNotEmpty &&
+            _newPasswordController.text.isNotEmpty) {
+          
+          // Re-authenticate user before changing password
+          AuthCredential credential = EmailAuthProvider.credential(
+            email: currentUser.email!,
+            password: _currentPasswordController.text,
+          );
+          
+          try {
+            await currentUser.reauthenticateWithCredential(credential);
+            await currentUser.updatePassword(_newPasswordController.text);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Password updated successfully!'))
+              );
+            }
+          } catch (e) {
+            setState(() {
+              _errorMessage = 'Failed to update password: $e';
+              _isLoading = false;
+            });
+            return;
+          }
+        }
       }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully!'))
+          const SnackBar(content: Text('Profile updated successfully!'))
         );
         Navigator.pop(context, true); // Return true to indicate success
       }
@@ -182,6 +220,101 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 keyboardType: TextInputType.phone,
               ),
+              
+              const SizedBox(height: 24),
+              
+              // Change password section toggle
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showPasswordFields = !_showPasswordFields;
+                  });
+                },
+                child: Row(
+                  children: [
+                    Icon(
+                      _showPasswordFields ? Icons.arrow_drop_down : Icons.arrow_right,
+                      color: Colors.deepPurple,
+                    ),
+                    const Text(
+                      'Change Password',
+                      style: TextStyle(
+                        fontSize: 16, 
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Password change fields
+              if (_showPasswordFields) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _currentPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Current Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    prefixIcon: const Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                  validator: _showPasswordFields ? (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your current password';
+                    }
+                    return null;
+                  } : null,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                TextFormField(
+                  controller: _newPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'New Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                  ),
+                  obscureText: true,
+                  validator: _showPasswordFields ? (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a new password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters long';
+                    }
+                    return null;
+                  } : null,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                  ),
+                  obscureText: true,
+                  validator: _showPasswordFields ? (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your new password';
+                    }
+                    if (value != _newPasswordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  } : null,
+                ),
+              ],
               
               if (_errorMessage.isNotEmpty) ...[
                 const SizedBox(height: 16),
