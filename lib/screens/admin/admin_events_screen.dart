@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 import '../../services/firestore_service.dart';
 import '../../models/event_model.dart';
 import '../../services/maps_service.dart';
@@ -52,7 +53,7 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
         _isLoading = false;
       });
     }, onError: (error) {
-      print('Error loading events: $error');
+      developer.log('Error loading events: $error');
       setState(() {
         _isLoading = false;
       });
@@ -63,7 +64,7 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Events'),
+        title: Text('Events (${_events.length})'),
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
       ),
@@ -90,7 +91,7 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
           Icon(
             Icons.event,
             size: 80,
-            color: Colors.deepPurple.withOpacity(0.5),
+            color: Colors.deepPurple.withAlpha(128), // 0.5 opacity is roughly 128 in alpha (0-255)
           ),
           const SizedBox(height: 16),
           const Text(
@@ -131,170 +132,200 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
   }
 
   Widget _buildEventsList() {
-    return ListView.builder(
-      itemCount: _events.length,
-      padding: const EdgeInsets.all(16),
-      itemBuilder: (context, index) {
-        final event = _events[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                color: Colors.deepPurple,
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  event.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        // Event count summary
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Card(
+            color: Colors.deepPurple.withAlpha(25), // 0.1 opacity is roughly 25 in alpha (0-255)
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.event_note, size: 24, color: Colors.deepPurple),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Total Events: ${_events.length}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
+            ),
+          ),
+        ),
+        // Event list
+        Expanded(
+          child: ListView.builder(
+            itemCount: _events.length,
+            padding: const EdgeInsets.all(16),
+            itemBuilder: (context, index) {
+              final event = _events[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Text(DateFormat('EEEE, MMM d, yyyy').format(event.eventDate)),
-                        const SizedBox(width: 16),
-                        const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Text(DateFormat('h:mm a').format(event.eventDate)),
-                      ],
+                    Container(
+                      width: double.infinity,
+                      color: Colors.deepPurple,
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        event.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(event.location)),
-                      ],
-                    ),
-                    if (event.locationLat != 0 && event.locationLng != 0)
-                      Column(
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: SizedBox(
-                              height: 150,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: GoogleMap(
-                                  initialCameraPosition: CameraPosition(
-                                    target: event.getLocation(),
-                                    zoom: 15,
-                                  ),
-                                  markers: {
-                                    Marker(
-                                      markerId: MarkerId(event.id ?? ''),
-                                      position: event.getLocation(),
-                                      infoWindow: InfoWindow(title: event.name),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(DateFormat('EEEE, MMM d, yyyy').format(event.eventDate)),
+                              const SizedBox(width: 16),
+                              const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(DateFormat('h:mm a').format(event.eventDate)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(event.location)),
+                            ],
+                          ),
+                          if (event.locationLat != 0 && event.locationLng != 0)
+                            Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: SizedBox(
+                                    height: 150,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: GoogleMap(
+                                        initialCameraPosition: CameraPosition(
+                                          target: event.getLocation(),
+                                          zoom: 15,
+                                        ),
+                                        markers: {
+                                          Marker(
+                                            markerId: MarkerId(event.id ?? ''),
+                                            position: event.getLocation(),
+                                            infoWindow: InfoWindow(title: event.name),
+                                          ),
+                                        },
+                                        zoomControlsEnabled: false,
+                                        mapToolbarEnabled: false,
+                                        myLocationButtonEnabled: false,
+                                      ),
                                     ),
-                                  },
-                                  zoomControlsEnabled: false,
-                                  mapToolbarEnabled: false,
-                                  myLocationButtonEnabled: false,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+                                      try {
+                                        await MapsService.openDirections(
+                                          event.locationLat,
+                                          event.locationLng,
+                                        );
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Could not open directions: $e')),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.directions),
+                                    label: const Text('Get Directions'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.deepPurple,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 16),
+                          Text(event.description),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.start,
+                            children: [
+                              _buildInfoChip(
+                                Icons.people,
+                                'Min: ${event.minAttendees}',
+                                Colors.orange,
+                              ),
+                              _buildInfoChip(
+                                Icons.how_to_reg,
+                                '${event.currentAttendees}/${event.minAttendees}',
+                                Colors.green,
+                              ),
+                              _buildInfoChip(
+                                Icons.event_available,
+                                'Due: ${DateFormat('MMM d').format(event.registrationDeadline)}',
+                                Colors.red,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () {
+                                  _editEvent(event);
+                                },
+                                icon: const Icon(Icons.edit, size: 18),
+                                label: const Text('Edit'),
+                                style: const ButtonStyle(
+                                  visualDensity: VisualDensity.compact,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
                               ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                try {
-                                  await MapsService.openDirections(
-                                    event.locationLat,
-                                    event.locationLng,
-                                  );
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Could not open directions: $e')),
-                                    );
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.directions),
-                              label: const Text('Get Directions'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple,
-                                foregroundColor: Colors.white,
+                              TextButton.icon(
+                                onPressed: () {
+                                  _deleteEvent(event);
+                                },
+                                icon: const Icon(Icons.delete, size: 18),
+                                label: const Text('Delete'),
+                                style: ButtonStyle(
+                                  visualDensity: VisualDensity.compact,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  foregroundColor: WidgetStateProperty.all(Colors.red),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),
-                    const SizedBox(height: 16),
-                    Text(event.description),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.start,
-                      children: [
-                        _buildInfoChip(
-                          Icons.people,
-                          'Min: ${event.minAttendees}',
-                          Colors.orange,
-                        ),
-                        _buildInfoChip(
-                          Icons.how_to_reg,
-                          '${event.currentAttendees}/${event.minAttendees}',
-                          Colors.green,
-                        ),
-                        _buildInfoChip(
-                          Icons.event_available,
-                          'Due: ${DateFormat('MMM d').format(event.registrationDeadline)}',
-                          Colors.red,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            // TODO: Implement event editing
-                          },
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Edit'),
-                          style: const ButtonStyle(
-                            visualDensity: VisualDensity.compact,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () {
-                            _deleteEvent(event);
-                          },
-                          icon: const Icon(Icons.delete, size: 18),
-                          label: const Text('Delete'),
-                          style: ButtonStyle(
-                            visualDensity: VisualDensity.compact,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            foregroundColor: MaterialStateProperty.all(Colors.red),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -524,13 +555,14 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
                           Expanded(
                             child: InkWell(
                               onTap: () async {
+                                final dialogContext = context; // Store context locally
                                 final pickedDate = await showDatePicker(
                                   context: context,
                                   initialDate: selectedDate,
                                   firstDate: DateTime.now(),
                                   lastDate: DateTime.now().add(const Duration(days: 365)),
                                 );
-                                if (pickedDate != null && context.mounted) {
+                                if (pickedDate != null && dialogContext.mounted) {
                                   setDialogState(() {
                                     selectedDate = DateTime(
                                       pickedDate.year,
@@ -561,11 +593,12 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
                           Expanded(
                             child: InkWell(
                               onTap: () async {
+                                final dialogContext = context; // Store context locally
                                 final pickedTime = await showTimePicker(
                                   context: context,
                                   initialTime: selectedTime,
                                 );
-                                if (pickedTime != null && context.mounted) {
+                                if (pickedTime != null && dialogContext.mounted) {
                                   setDialogState(() {
                                     selectedTime = pickedTime;
                                     selectedDate = DateTime(
@@ -694,19 +727,25 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
                           
                           if (context.mounted) {
                             Navigator.pop(context);
+                            // Refresh events list
+                            _loadEvents();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Event created successfully')),
                             );
                           }
                         } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error creating event: $e')),
-                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error creating event: $e')),
+                            );
+                          }
                         }
                       } else if (selectedLocation == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please select a location on the map')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please select a location on the map')),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -739,17 +778,20 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
     ) async {
       if (address.isEmpty) return;
       
+      // Store buildContext locally to avoid issues with async gaps
+      final buildContext = context;
+      
       try {
         // Show loading indicator
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        if (buildContext.mounted) {
+          ScaffoldMessenger.of(buildContext).showSnackBar(
             const SnackBar(content: Text('Searching location...'), duration: Duration(seconds: 1)),
           );
         }
         
         List<Location> locations = await locationFromAddress(address);
         
-        if (locations.isNotEmpty && context.mounted) {
+        if (locations.isNotEmpty && buildContext.mounted) {
           final location = locations.first;
           
           setDialogState(() {
@@ -763,29 +805,31 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
           });
           
           // Navigate to the searched location on the map
-          googleMapController?.animateCamera(
-            CameraUpdate.newCameraPosition(
-              CameraPosition(
-                target: selectedLocation!,
-                zoom: 15,
+          if (selectedLocation != null) {
+            googleMapController?.animateCamera(
+              CameraUpdate.newCameraPosition(
+                CameraPosition(
+                  target: selectedLocation!,
+                  zoom: 15,
+                ),
               ),
-            ),
-          );
+            );
+          }
           
           // Show success message
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+          if (buildContext.mounted) {
+            ScaffoldMessenger.of(buildContext).showSnackBar(
               SnackBar(content: Text('Location found: $address')),
             );
           }
-        } else if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        } else if (buildContext.mounted) {
+          ScaffoldMessenger.of(buildContext).showSnackBar(
             const SnackBar(content: Text('No matching location found')),
           );
         }
       } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        if (buildContext.mounted) {
+          ScaffoldMessenger.of(buildContext).showSnackBar(
             SnackBar(content: Text('Could not find location: $e')),
           );
         }
@@ -1083,20 +1127,441 @@ class _AdminEventsScreenState extends State<AdminEventsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
+              final contextRef = context; // Store context before async operation
               try {
                 await _firestoreService.deleteEvent(event.id!);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Event deleted successfully')),
-                );
+                if (contextRef.mounted) {
+                  // Refresh events list
+                  _loadEvents();
+                  ScaffoldMessenger.of(contextRef).showSnackBar(
+                    const SnackBar(content: Text('Event deleted successfully')),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error deleting event: $e')),
-                );
+                if (contextRef.mounted) {
+                  ScaffoldMessenger.of(contextRef).showSnackBar(
+                    SnackBar(content: Text('Error deleting event: $e')),
+                  );
+                }
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _editEvent(EventModel event) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(text: event.name);
+    final descriptionController = TextEditingController(text: event.description);
+    final locationController = TextEditingController(text: event.location);
+    final minAttendeesController = TextEditingController(text: event.minAttendees.toString());
+    
+    DateTime selectedDate = event.eventDate;
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(event.eventDate);
+    DateTime registrationDeadline = event.registrationDeadline;
+    
+    // Map location variables
+    LatLng selectedLocation = LatLng(event.locationLat, event.locationLng);
+    final mapController = GlobalKey<FormFieldState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Edit Event'),
+            backgroundColor: Colors.deepPurple,
+            foregroundColor: Colors.white,
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) {
+              return Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Event Name',
+                          icon: Icon(Icons.event),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter an event name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          icon: Icon(Icons.description),
+                        ),
+                        maxLines: 3,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a description';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Location with Map
+                      Card(
+                        elevation: 2,
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Event Location',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.deepPurple),
+                                    onPressed: () {
+                                      _showLocationPickerDialog(locationController, mapController, selectedLocation).then((pickedLocation) {
+                                        if (pickedLocation != null) {
+                                          setDialogState(() {
+                                            selectedLocation = pickedLocation;
+                                          });
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Location field with add button
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: locationController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Location',
+                                        hintText: 'Event location',
+                                        prefixIcon: Icon(Icons.location_on),
+                                      ),
+                                      readOnly: true,
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please select a location';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      _showLocationPickerDialog(locationController, mapController, selectedLocation).then((pickedLocation) {
+                                        if (pickedLocation != null) {
+                                          setDialogState(() {
+                                            selectedLocation = pickedLocation;
+                                          });
+                                        }
+                                      });
+                                    },
+                                    icon: const Icon(Icons.add_location_alt),
+                                    label: const Text('Add Location'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.deepPurple,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              
+                              // Hidden FormField for validation
+                              FormField<LatLng>(
+                                key: mapController,
+                                initialValue: selectedLocation,
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Please select a location';
+                                  }
+                                  return null;
+                                },
+                                builder: (FormFieldState<LatLng> state) {
+                                  return state.hasError
+                                    ? Padding(
+                                        padding: const EdgeInsets.only(top: 8, left: 12),
+                                        child: Text(
+                                          state.errorText!,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.error,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink();
+                                },
+                              ),
+                              
+                              // Map preview
+                              const SizedBox(height: 16),
+                              Container(
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: GoogleMap(
+                                    initialCameraPosition: CameraPosition(
+                                      target: selectedLocation,
+                                      zoom: 14,
+                                    ),
+                                    markers: {
+                                      Marker(
+                                        markerId: const MarkerId('eventLocation'),
+                                        position: selectedLocation,
+                                      ),
+                                    },
+                                    mapType: MapType.normal,
+                                    myLocationEnabled: true,
+                                    myLocationButtonEnabled: false,
+                                    zoomControlsEnabled: false,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, color: Colors.grey),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final dialogContext = context; // Store context locally
+                                final pickedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                                );
+                                if (pickedDate != null && dialogContext.mounted) {
+                                  setDialogState(() {
+                                    selectedDate = DateTime(
+                                      pickedDate.year,
+                                      pickedDate.month,
+                                      pickedDate.day,
+                                      selectedTime.hour,
+                                      selectedTime.minute,
+                                    );
+                                  });
+                                }
+                              },
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Event Date',
+                                  border: InputBorder.none,
+                                ),
+                                child: Text(DateFormat('EEEE, MMM d, yyyy').format(selectedDate)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, color: Colors.grey),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final dialogContext = context; // Store context locally
+                                final pickedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: selectedTime,
+                                );
+                                if (pickedTime != null && dialogContext.mounted) {
+                                  setDialogState(() {
+                                    selectedTime = pickedTime;
+                                    selectedDate = DateTime(
+                                      selectedDate.year,
+                                      selectedDate.month,
+                                      selectedDate.day,
+                                      selectedTime.hour,
+                                      selectedTime.minute,
+                                    );
+                                  });
+                                }
+                              },
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Event Time',
+                                  border: InputBorder.none,
+                                ),
+                                child: Text(DateFormat('h:mm a').format(selectedDate)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.event_available, color: Colors.grey),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final pickedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: registrationDeadline,
+                                  firstDate: DateTime.now(),
+                                  lastDate: selectedDate,
+                                );
+                                if (pickedDate != null && context.mounted) {
+                                  setDialogState(() {
+                                    registrationDeadline = pickedDate;
+                                  });
+                                }
+                              },
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Registration Deadline',
+                                  border: InputBorder.none,
+                                ),
+                                child: Text(DateFormat('EEEE, MMM d, yyyy').format(registrationDeadline)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: minAttendeesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Minimum Attendees Required',
+                          icon: Icon(Icons.people),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a number';
+                          }
+                          final number = int.tryParse(value);
+                          if (number == null || number < 2) {
+                            return 'Must be at least 2 attendees';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          ),
+          bottomNavigationBar: BottomAppBar(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Update the mapController's value to ensure validation works properly
+                      mapController.currentState?.didChange(selectedLocation);
+                      
+                      if (formKey.currentState!.validate()) {
+                        try {
+                          // Set combined date and time
+                          final eventDateTime = DateTime(
+                            selectedDate.year,
+                            selectedDate.month,
+                            selectedDate.day,
+                            selectedTime.hour,
+                            selectedTime.minute,
+                          );
+                          
+                          // Create EventModel
+                          final updatedEvent = EventModel(
+                            id: event.id,
+                            name: nameController.text,
+                            description: descriptionController.text,
+                            location: locationController.text,
+                            locationLat: selectedLocation.latitude,
+                            locationLng: selectedLocation.longitude,
+                            eventDate: eventDateTime,
+                            registrationDeadline: registrationDeadline,
+                            minAttendees: int.parse(minAttendeesController.text),
+                            currentAttendees: event.currentAttendees, // Keep existing attendees
+                            status: event.status, // Keep existing status
+                            createdBy: event.createdBy, // Keep existing createdBy
+                            createdAt: event.createdAt, // Keep existing createdAt
+                            attendees: event.attendees, // Keep existing attendees
+                          );
+                          
+                          // Save to Firestore
+                          await _firestoreService.updateEvent(updatedEvent);
+                          
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            // Refresh events list
+                            _loadEvents();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Event updated successfully')),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error updating event: $e')),
+                            );
+                          }
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Update Event'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

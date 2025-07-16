@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
+import 'admin_main_screen.dart'; // Added import for AdminMainScreen
 
 class AdminHomeScreen extends StatefulWidget {
   final UserModel user;
@@ -66,8 +67,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           .get();
       _totalAuctions = auctionsQuery.docs.length;
       
-      // Events would be implemented in the future
-      _totalEvents = 0;
+      // Get total events count
+      final eventsQuery = await _firestore.collection('events').get();
+      _totalEvents = eventsQuery.docs.length;
       
       // Get recent users
       final recentUsersQuery = await _firestore.collection('users')
@@ -213,7 +215,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         const SizedBox(width: 16),
                         Expanded(child: _buildStatCard('Auctions', _totalAuctions.toString(), Icons.gavel, Colors.red)),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildStatCard('Events', _totalEvents.toString(), Icons.event, Colors.teal)),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              // Navigate to events screen when tapped
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => AdminMainScreen(
+                                    user: widget.user,
+                                    initialIndex: 2, // Events tab index
+                                  ),
+                                ),
+                              );
+                            },
+                            child: _buildStatCard('Events', _totalEvents.toString(), Icons.event, Colors.teal),
+                          ),
+                        ),
                       ],
                     ),
                     

@@ -6,20 +6,26 @@ import 'admin_events_screen.dart';
 
 class AdminMainScreen extends StatefulWidget {
   final UserModel user;
+  final int initialIndex;
   
-  const AdminMainScreen({super.key, required this.user});
+  const AdminMainScreen({
+    super.key, 
+    required this.user, 
+    this.initialIndex = 0,
+  });
 
   @override
   State<AdminMainScreen> createState() => _AdminMainScreenState();
 }
 
 class _AdminMainScreenState extends State<AdminMainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late List<Widget> _screens;
   
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _screens = [
       AdminHomeScreen(user: widget.user),
       AdminManageScreen(user: widget.user),

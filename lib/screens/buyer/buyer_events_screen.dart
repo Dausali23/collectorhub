@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
-import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../models/event_model.dart';
@@ -49,7 +49,7 @@ class _BuyerEventsScreenState extends State<BuyerEventsScreen> {
         _isLoading = false;
       });
     }, onError: (error) {
-      print('Error loading upcoming events: $error');
+      developer.log('Error loading upcoming events: $error');
       setState(() {
         _isLoading = false;
       });
@@ -79,7 +79,7 @@ class _BuyerEventsScreenState extends State<BuyerEventsScreen> {
             Icon(
               Icons.event_note,
               size: 80,
-              color: Colors.deepPurple.withOpacity(0.5),
+              color: Colors.deepPurple.withAlpha(128), // Fixed withOpacity -> withAlpha
             ),
             const SizedBox(height: 16),
             const Text(
@@ -548,7 +548,7 @@ class _BuyerEventsScreenState extends State<BuyerEventsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withAlpha(50), // Fixed withOpacity -> withAlpha
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),
@@ -563,16 +563,17 @@ class _BuyerEventsScreenState extends State<BuyerEventsScreen> {
   }
   
   Future<void> _joinEvent(EventModel event) async {
+    final contextRef = context; // Store context before async operation
     try {
       await _firestoreService.joinEvent(event.id!, widget.user.uid);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted && contextRef.mounted) {
+        ScaffoldMessenger.of(contextRef).showSnackBar(
           const SnackBar(content: Text('Successfully joined the event!')),
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted && contextRef.mounted) {
+        ScaffoldMessenger.of(contextRef).showSnackBar(
           SnackBar(content: Text('Error joining event: $e')),
         );
       }
@@ -580,16 +581,17 @@ class _BuyerEventsScreenState extends State<BuyerEventsScreen> {
   }
   
   Future<void> _leaveEvent(EventModel event) async {
+    final contextRef = context; // Store context before async operation
     try {
       await _firestoreService.leaveEvent(event.id!, widget.user.uid);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted && contextRef.mounted) {
+        ScaffoldMessenger.of(contextRef).showSnackBar(
           const SnackBar(content: Text('You have left the event')),
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted && contextRef.mounted) {
+        ScaffoldMessenger.of(contextRef).showSnackBar(
           SnackBar(content: Text('Error leaving event: $e')),
         );
       }
