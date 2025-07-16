@@ -8,6 +8,7 @@ import 'item_detail_screen.dart';
 import 'auction_detail_screen.dart';
 import 'cart_screen.dart';
 import '../../widgets/current_bid_display.dart';
+import '../../models/auction_model.dart';
 
 class ShopScreen extends StatefulWidget {
   final UserModel user;
@@ -404,27 +405,64 @@ class _ShopScreenState extends State<ShopScreen> {
                           ),
                   ),
                 ),
+                
+                // Sale/Auction badge
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 2,
-                      horizontal: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: listing.isFixedPrice ? Colors.blue : Colors.red,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      listing.isFixedPrice ? 'SALE' : 'AUCTION',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  child: listing.isFixedPrice 
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 2,
+                        horizontal: 8,
                       ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'SALE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : FutureBuilder<AuctionModel?>(
+                      future: _firestoreService.getAuction(listing.id!),
+                      builder: (context, snapshot) {
+                        Color badgeColor = Colors.red;
+                        String badgeText = 'AUCTION';
+                        
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final auction = snapshot.data!;
+                          if (auction.status == AuctionStatus.ended) {
+                            badgeColor = Colors.grey.shade600;
+                            badgeText = 'ENDED';
+                          }
+                        }
+                        
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 2,
+                            horizontal: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            badgeText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
                 ),
                 Positioned(
                   top: 8,

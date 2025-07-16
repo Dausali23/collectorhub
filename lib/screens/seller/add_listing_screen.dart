@@ -33,6 +33,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   String _selectedCategory = 'Trading Cards';
   String _selectedSubcategory = 'Pokémon TCG';
   CollectibleCondition _selectedCondition = CollectibleCondition.mint;
+  // Always fixed price for this screen
   bool _isFixedPrice = true;
   bool _isLoadingMarketPrice = false;
   List<String> _images = [];
@@ -359,7 +360,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Collectible'),
+        title: const Text('Add Fixed Price Collectible'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
@@ -731,117 +732,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   return null;
                 },
                 onSaved: (value) => _price = double.tryParse(value!) ?? 0,
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Listing type selection
-              const Text(
-                'Listing Type',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              
-              const SizedBox(height: 12),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isFixedPrice = true;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _isFixedPrice ? Theme.of(context).colorScheme.primaryContainer : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _isFixedPrice ? Theme.of(context).colorScheme.primary : Colors.grey.shade400,
-                            width: _isFixedPrice ? 2 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.monetization_on_outlined,
-                              size: 30,
-                              color: _isFixedPrice ? Theme.of(context).colorScheme.primary : Colors.grey.shade700,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Fixed Price',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: _isFixedPrice ? Theme.of(context).colorScheme.primary : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Sell at a set price',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isFixedPrice = false;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: !_isFixedPrice ? Theme.of(context).colorScheme.primaryContainer : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: !_isFixedPrice ? Theme.of(context).colorScheme.primary : Colors.grey.shade400,
-                            width: !_isFixedPrice ? 2 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.gavel,
-                              size: 30,
-                              color: !_isFixedPrice ? Theme.of(context).colorScheme.primary : Colors.grey.shade700,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Auction',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: !_isFixedPrice ? Theme.of(context).colorScheme.primary : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Sell to highest bidder',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
               
               const SizedBox(height: 32),
