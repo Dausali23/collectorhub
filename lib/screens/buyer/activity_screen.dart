@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../models/purchase_model.dart';
+import '../../models/bid_model.dart';
+import '../../models/auction_model.dart';
+import '../../models/listing_model.dart';
 import '../../services/cart_service.dart';
+import '../../services/firestore_service.dart';
 import '../chat/chat_list_screen.dart';
 import 'buyer_events_screen.dart';
 import 'purchase_detail_screen.dart';
+import 'auction_detail_screen.dart';
 import 'dart:developer' as developer;
 
 class ActivityScreen extends StatefulWidget {
@@ -18,6 +23,7 @@ class ActivityScreen extends StatefulWidget {
 
 class _ActivityScreenState extends State<ActivityScreen> {
   final CartService _cartService = CartService();
+  final FirestoreService _firestoreService = FirestoreService();
   
   @override
   Widget build(BuildContext context) {
@@ -125,6 +131,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           );
                         },
                       ),
+                      _buildActivityCategory(
+                        title: 'My Bids',
+                        icon: Icons.gavel,
+                        onTap: () {
+                          // Scroll to My Bids section
+                          // We'll add this section below
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -212,6 +226,34 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 
                 // Completed Orders List
                 _buildPurchasesList(PurchaseStatus.completed),
+                
+                const SizedBox(height: 16),
+                
+                // My Bids Section - Shows auctions where buyer has placed bids (participated)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'My Bids',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Icon(
+                        Icons.gavel,
+                        color: Colors.orange.shade700,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // My Bids List
+                _buildBidsList(),
                 
                 const SizedBox(height: 32),
               ],
@@ -563,5 +605,296 @@ class _ActivityScreenState extends State<ActivityScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildBidsList() {
+    return StreamBuilder<List<BidModel>>(
+      stream: _firestoreService.getUserBids(widget.user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        if (snapshot.hasError) {
+          developer.log('Error loading bids: ${snapshot.error}');
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              'Error loading bids: ${snapshot.error}',
+              style: TextStyle(color: Colors.red.shade700),
+            ),
+          );
+        }
+        
+        final bids = snapshot.data ?? [];
+        
+        if (bids.isEmpty) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.gavel,
+                  color: Colors.orange.shade700,
+                  size: 48,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'No auction participation yet',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Auctions you bid on will appear here for easy tracking',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+        
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha: 0.1),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: bids.length > 5 ? 5 : bids.length, // Show max 5 recent bids
+            separatorBuilder: (context, index) => Divider(
+              height: 1,
+              color: Colors.grey.shade200,
+            ),
+            itemBuilder: (context, index) {
+              final bid = bids[index];
+              return _buildBidItem(bid);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBidItem(BidModel bid) {
+    return FutureBuilder<AuctionModel?>(
+      future: _firestoreService.getAuction(bid.auctionId),
+      builder: (context, auctionSnapshot) {
+        return FutureBuilder<ListingModel?>(
+          future: _firestoreService.getListing(bid.listingId),
+          builder: (context, listingSnapshot) {
+            final auction = auctionSnapshot.data;
+            final listing = listingSnapshot.data;
+            
+            // Determine bid status
+            String status = 'Pending';
+            Color statusColor = Colors.orange;
+            IconData statusIcon = Icons.pending;
+            
+            if (auction != null) {
+              if (auction.status == AuctionStatus.ended) {
+                if (auction.topBidderId == widget.user.uid) {
+                  status = 'Won';
+                  statusColor = Colors.green;
+                  statusIcon = Icons.emoji_events;
+                } else {
+                  status = 'Lost';
+                  statusColor = Colors.red;
+                  statusIcon = Icons.close;
+                }
+              } else if (auction.status == AuctionStatus.active) {
+                if (auction.topBidderId == widget.user.uid) {
+                  status = 'Leading';
+                  statusColor = Colors.blue;
+                  statusIcon = Icons.trending_up;
+                } else {
+                  status = 'Outbid';
+                  statusColor = Colors.orange;
+                  statusIcon = Icons.trending_down;
+                }
+              }
+            }
+            
+            return InkWell(
+              onTap: () {
+                if (listing != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AuctionDetailScreen(
+                        item: listing,
+                        currentUser: widget.user,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    // Bid status icon
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        statusIcon,
+                        color: statusColor,
+                        size: 20,
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 12),
+                    
+                    // Bid details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                                                     Text(
+                             listing?.title ?? 'Loading...',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                                                     Wrap(
+                             children: [
+                               Text(
+                                 'Your bid: \$${bid.amount.isFinite ? bid.amount.toStringAsFixed(2) : '0.00'}',
+                                 style: TextStyle(
+                                   color: Colors.grey.shade600,
+                                   fontSize: 14,
+                                 ),
+                               ),
+                               if (auction != null) ...[
+                                 Padding(
+                                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                   child: Text(
+                                     '•',
+                                     style: TextStyle(
+                                       color: Colors.grey.shade600,
+                                       fontSize: 14,
+                                     ),
+                                   ),
+                                 ),
+                                 Text(
+                                   'Current: \$${auction.currentPrice.isFinite ? auction.currentPrice.toStringAsFixed(2) : '0.00'}',
+                                   style: TextStyle(
+                                     color: Colors.grey.shade600,
+                                     fontSize: 14,
+                                   ),
+                                 ),
+                               ],
+                             ],
+                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatBidTime(bid.timestamp),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatBidTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
+    }
   }
 } 

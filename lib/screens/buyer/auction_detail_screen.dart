@@ -3,8 +3,11 @@ import '../../models/listing_model.dart';
 import '../../models/user_model.dart';
 import '../../models/auction_model.dart';
 import '../../services/firestore_service.dart';
+import '../../services/cart_service.dart';
 import '../../utils/image_utils.dart';
 import '../chat/chat_screen.dart';
+import 'purchase_confirmation_screen.dart';
+import '../../models/cart_model.dart';
 import 'dart:developer' as developer;
 
 class AuctionDetailScreen extends StatefulWidget {
@@ -23,7 +26,9 @@ class AuctionDetailScreen extends StatefulWidget {
 
 class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  final CartService _cartService = CartService();
   bool _isPlacingBid = false;
+  bool _isProcessingPayment = false;
   AuctionModel? _auction;
   final TextEditingController _customBidController = TextEditingController();
   
@@ -47,23 +52,8 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
           _auction = auction;
         });
         
-        // Check if auction has expired but still marked as active
-        if (_auction != null && 
-            _auction!.status == AuctionStatus.active && 
-            _auction!.endTime.isBefore(DateTime.now())) {
-          // Update the auction status to ended
-          await _firestoreService.updateAuction(
-            _auction!.copyWith(status: AuctionStatus.ended)
-          );
-          
-          // Reload the auction data after updating
-          final updatedAuction = await _firestoreService.getAuction(widget.item.id!);
-          if (mounted) {
-            setState(() {
-              _auction = updatedAuction;
-            });
-          }
-        }
+        // The getAuction method now handles ending auctions automatically
+        // so we don't need to check and update here anymore
       }
     } catch (e) {
       developer.log('Error loading auction data: $e');
@@ -410,63 +400,118 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                 child: SafeArea(
                   child: Row(
                     children: [
-                      // Custom bid button
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isPlacingBid || _auction!.status != AuctionStatus.active
-                              ? null
-                              : () => _showCustomBidDialog(),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: BorderSide(color: Colors.red.shade300),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      // Show different buttons based on auction status and user's status
+                      if (_auction!.status == AuctionStatus.active) ...[
+                        // Custom bid button - Only show for active auctions
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isPlacingBid ? null : () => _showCustomBidDialog(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: BorderSide(color: Colors.red.shade300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Custom Bid',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
+                            child: const Text(
+                              'Custom Bid',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      
-                      const SizedBox(width: 12),
-                      
-                      // Quick bid button (current + increment)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isPlacingBid || _auction!.status != AuctionStatus.active
-                              ? null
-                              : () => _showBidConfirmationDialog(_auction!.currentPrice + _auction!.bidIncrement),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
+                        
+                        const SizedBox(width: 12),
+                        
+                        // Quick bid button (current + increment) - Only show for active auctions
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isPlacingBid ? null : () => _showBidConfirmationDialog(_auction!.currentPrice + _auction!.bidIncrement),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              disabledBackgroundColor: Colors.red.withAlpha(128),
+                            ),
+                            child: _isPlacingBid
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Text(
+                                    'Bid RM ${(_auction!.currentPrice + _auction!.bidIncrement).toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ] else if (_auction!.status == AuctionStatus.ended && 
+                               _auction!.topBidderId == widget.currentUser.uid) ...[
+                        // Confirm Payment button - Only for auction winners
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isProcessingPayment ? null : () => _processWinnerPayment(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: _isProcessingPayment
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Confirm Payment',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ] else ...[
+                        // Message for non-winners or ended auctions
+                        Expanded(
+                          child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            disabledBackgroundColor: Colors.red.withAlpha(128),
-                          ),
-                          child: _isPlacingBid
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : Text(
-                                  'Bid RM ${(_auction!.currentPrice + _auction!.bidIncrement).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                            child: Center(
+                              child: Text(
+                                _auction!.status == AuctionStatus.ended
+                                  ? (_auction!.topBidderId == null
+                                      ? 'Auction ended with no bids'
+                                      : 'Auction won by ${_auction!.topBidderName}')
+                                  : 'Auction is not active',
+                                style: TextStyle(
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -661,6 +706,77 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
       if (mounted) {
         setState(() {
           _isPlacingBid = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  // Process winner payment - creates a purchase for auction winner
+  Future<void> _processWinnerPayment() async {
+    if (_auction == null || _isProcessingPayment) return;
+    
+    setState(() {
+      _isProcessingPayment = true;
+    });
+    
+    try {
+      developer.log('Processing payment for auction win: ${widget.item.id}');
+      developer.log('Auction final price: ${_auction!.currentPrice}');
+      
+      // Create a modified listing with the final bid price (not the original listing price)
+      final modifiedListing = ListingModel(
+        id: widget.item.id,
+        sellerId: widget.item.sellerId,
+        sellerName: widget.item.sellerName,
+        title: widget.item.title,
+        description: widget.item.description,
+        price: _auction!.currentPrice, // Use the winning bid price
+        marketPrice: widget.item.marketPrice,
+        category: widget.item.category,
+        subcategory: widget.item.subcategory,
+        condition: widget.item.condition,
+        images: widget.item.images,
+        isAvailable: widget.item.isAvailable,
+        isFixedPrice: false, // It's an auction
+        createdAt: widget.item.createdAt,
+      );
+      
+      // Create a cart item with the modified listing (using final auction price)
+      final cartItem = CartItem(
+        id: 'auction-win-${widget.item.id}',
+        listing: modifiedListing, // Use modified listing with correct price
+        addedAt: DateTime.now(),
+      );
+      
+      if (mounted) {
+        setState(() {
+          _isProcessingPayment = false;
+        });
+        
+        // Navigate to purchase confirmation screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PurchaseConfirmationScreen(
+              user: widget.currentUser,
+              cartItems: [cartItem],
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      developer.log('Error processing auction winner payment: $e');
+      
+      if (mounted) {
+        setState(() {
+          _isProcessingPayment = false;
         });
         
         ScaffoldMessenger.of(context).showSnackBar(

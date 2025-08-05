@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:developer' as developer;
 import '../models/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -23,8 +22,6 @@ class AuthService {
     
     // Hardcoded roles for specific emails to bypass Firestore permission issues
     final Map<String, UserRole> hardcodedRoles = {
-      'seller1@gmail.com': UserRole.seller,
-      'seller2@gmail.com': UserRole.seller,
       'admin123@gmail.com': UserRole.admin,
     };
     
@@ -44,20 +41,59 @@ class AuthService {
     try {
       developer.log('DEBUGGING: Fetching user role for ${user.email}');
       
-      // Use compute for Firestore data processing to avoid blocking the main thread
-      final userModel = await compute(_fetchUserDataFromFirestore, {
-        'uid': user.uid,
-        'email': user.email ?? 'no-email',
-        'displayName': user.displayName,
-        'photoURL': user.photoURL,
-      });
+      // Fetch directly from Firestore without using compute isolate
+      // The compute isolate might be causing Firebase access issues
+      final doc = await _firestore.collection('users').doc(user.uid).get();
       
-      if (userModel != null) {
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        developer.log('DEBUGGING: Found user document in Firestore for ${user.email}');
+        developer.log('DEBUGGING: Role in document: ${data['role']}');
+        
+        final roleStr = data['role'] as String?;
+        final name = data['displayName'] as String? ?? user.displayName;
+        final phone = data['phoneNumber'] as String?;
+        UserRole role = UserRole.buyer; // Default
+        
+        // More robust role checking (case insensitive, trim whitespace, etc.)
+        if (roleStr != null) {
+          final normalizedRole = roleStr.trim().toLowerCase();
+          developer.log('DEBUGGING: Normalized role: $normalizedRole');
+          
+          if (normalizedRole == 'seller') {
+            role = UserRole.seller;
+            developer.log('DEBUGGING: Setting role to SELLER for ${user.email}');
+          } else if (normalizedRole == 'admin') {
+            role = UserRole.admin;
+            developer.log('DEBUGGING: Setting role to ADMIN for ${user.email}');
+          } else {
+            developer.log('DEBUGGING: Role not recognized, defaulting to BUYER for ${user.email}');
+          }
+        } else {
+          developer.log('DEBUGGING: Role field is null, defaulting to BUYER for ${user.email}');
+        }
+        
+        final userModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? 'no-email',
+          displayName: name,
+          phoneNumber: phone,
+          role: role,
+          photoUrl: user.photoURL,
+        );
+        
         // Cache the user model
         _userCache[user.uid] = userModel;
+        
+        developer.log('DEBUGGING: Final user model role: ${userModel.role}');
+        return userModel;
+      } else {
+        developer.log('DEBUGGING: User document does NOT exist in Firestore for ${user.email}');
+        
+        // Default if no role found in Firestore
+        developer.log('DEBUGGING: Returning default UserModel (buyer role)');
+        return UserModel.fromFirebase(user);
       }
-      
-      return userModel;
     } catch (e) {
       developer.log('DEBUGGING: Error fetching user role: $e');
       developer.log('DEBUGGING: Error stack trace: ${StackTrace.current}');
@@ -68,58 +104,7 @@ class AuthService {
     }
   }
   
-  // Static method to fetch user data from Firestore (runs in isolate)
-  static Future<UserModel?> _fetchUserDataFromFirestore(Map<String, dynamic> userData) async {
-    final uid = userData['uid'] as String;
-    final email = userData['email'] as String;
-    final displayName = userData['displayName'] as String?;
-    final photoURL = userData['photoURL'] as String?;
-    
-    try {
-      // Get user role from Firestore
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        
-        final roleStr = data['role'] as String?;
-        final name = data['displayName'] as String? ?? displayName;
-        final phone = data['phoneNumber'] as String?;
-        UserRole role = UserRole.buyer; // Default
-        
-        // More robust role checking (case insensitive, trim whitespace, etc.)
-        if (roleStr != null) {
-          final normalizedRole = roleStr.trim().toLowerCase();
-          
-          if (normalizedRole == 'seller') {
-            role = UserRole.seller;
-          } else if (normalizedRole == 'admin') {
-            role = UserRole.admin;
-          }
-        }
-        
-        return UserModel(
-          uid: uid,
-          email: email,
-          displayName: name,
-          phoneNumber: phone,
-          role: role,
-          photoUrl: photoURL,
-        );
-      }
-    } catch (e) {
-      // Just log the error in the isolate
-    }
-    
-    // Default if no role found in Firestore
-    return UserModel(
-      uid: uid,
-      email: email,
-      displayName: displayName,
-      role: UserRole.buyer,
-      photoUrl: photoURL,
-    );
-  }
+
 
   // Auth state changes stream
   Stream<UserModel?> get user {

@@ -3,6 +3,8 @@ import '../models/listing_model.dart';
 import '../models/user_model.dart';
 import '../models/auction_model.dart';
 import '../models/event_model.dart';
+import '../models/bid_model.dart';
+import '../models/purchase_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -186,6 +188,21 @@ class FirestoreService {
     }
     
     try {
+      // Check if this update is setting the auction to ended status
+      if (auction.status == AuctionStatus.ended) {
+        // Get the current auction state to check if it was previously active
+        final currentDoc = await _auctionsCollection.doc(auction.id).get();
+        if (currentDoc.exists) {
+          final currentAuction = AuctionModel.fromFirestore(currentDoc);
+          if (currentAuction.status == AuctionStatus.active) {
+            // This is an auction ending - use our special method to handle purchase creation
+            await _endAuctionAndCreatePurchase(auction.id!, auction);
+            return;
+          }
+        }
+      }
+      
+      // For regular updates (not ending auction), just update normally
       await _auctionsCollection.doc(auction.id).update(auction.toMap());
     } catch (e) {
       print('Error updating auction: $e');
@@ -196,26 +213,41 @@ class FirestoreService {
   // Delete a listing
   Future<void> deleteListing(String listingId) async {
     try {
-      // Transaction to delete listing and related auction data
-      await _firestore.runTransaction((transaction) async {
-        // Delete the listing
-        transaction.delete(_listingsCollection.doc(listingId));
+      // First, check if this listing has an auction
+      DocumentSnapshot auctionSnapshot = await _auctionsCollection.doc(listingId).get();
+      
+      // Delete bids first if they exist (outside of transaction)
+      if (auctionSnapshot.exists) {
+        // Get all bids for this auction/listing
+        QuerySnapshot bidsSnapshot = await _bidsCollection
+            .where('listingId', isEqualTo: listingId)
+            .get();
         
-        // Check if there's an auction for this listing
-        DocumentSnapshot auctionSnapshot = await _auctionsCollection.doc(listingId).get();
-        if (auctionSnapshot.exists) {
-          transaction.delete(_auctionsCollection.doc(listingId));
-          
-          // Delete related bids
-          QuerySnapshot bidsSnapshot = await _bidsCollection
-              .where('listingId', isEqualTo: listingId)
-              .get();
-          
-          for (var doc in bidsSnapshot.docs) {
-            transaction.delete(doc.reference);
+        // Delete each bid individually
+        for (var doc in bidsSnapshot.docs) {
+          try {
+            await doc.reference.delete();
+            print('Deleted bid ${doc.id}');
+          } catch (e) {
+            print('Warning: Failed to delete bid ${doc.id}: $e');
+            // Continue with other deletions even if one fails
           }
         }
-      });
+        
+        // Now delete the auction
+        try {
+          await _auctionsCollection.doc(listingId).delete();
+          print('Deleted auction $listingId');
+        } catch (e) {
+          print('Warning: Failed to delete auction: $e');
+          // Continue with listing deletion even if auction deletion fails
+        }
+      }
+      
+      // Finally delete the listing itself
+      await _listingsCollection.doc(listingId).delete();
+      print('Deleted listing $listingId');
+      
     } catch (e) {
       print('Error deleting listing: $e');
       rethrow;
@@ -325,10 +357,92 @@ class FirestoreService {
       if (!doc.exists) {
         return null;
       }
-      return AuctionModel.fromFirestore(doc);
+      
+      final auction = AuctionModel.fromFirestore(doc);
+      
+      // Check if auction should be ended but isn't yet
+      if (auction.status == AuctionStatus.active && 
+          auction.endTime.isBefore(DateTime.now())) {
+        
+        // Update auction status without using the updateAuction method to avoid circular reference
+        await _auctionsCollection.doc(auctionId).update({
+          'status': AuctionModel.statusToString(AuctionStatus.ended)
+        });
+        
+        // If this is the first time ending the auction, create purchase
+        await _checkAndCreatePurchaseForEndedAuction(auctionId, auction);
+        
+        // Return updated auction object
+        return auction.copyWith(status: AuctionStatus.ended);
+      }
+      
+      return auction;
     } catch (e) {
       print('Error getting auction: $e');
       rethrow;
+    }
+  }
+  
+  // Create a purchase record for an ended auction if it doesn't exist yet
+  Future<void> _checkAndCreatePurchaseForEndedAuction(String auctionId, AuctionModel auction) async {
+    try {
+      // Only proceed if there's a winner
+      if (auction.topBidderId == null) {
+        print('Auction ended with no winner, no purchase created');
+        return;
+      }
+      
+      // Check if a purchase already exists for this auction
+      final purchasesQuery = await _firestore.collection('purchases')
+          .where('auctionId', isEqualTo: auctionId)
+          .limit(1)
+          .get();
+      
+      // If purchase already exists, don't create a new one
+      if (purchasesQuery.docs.isNotEmpty) {
+        print('Purchase already exists for auction $auctionId');
+        return;
+      }
+      
+      // Get the listing details
+      DocumentSnapshot listingDoc = await _listingsCollection.doc(auction.listingId).get();
+      if (!listingDoc.exists) {
+        print('Listing not found for auction $auctionId');
+        return;
+      }
+      
+      final listingData = listingDoc.data() as Map<String, dynamic>;
+      
+      // Create purchase document
+      final purchaseRef = _firestore.collection('purchases').doc();
+      await purchaseRef.set({
+        'buyerId': auction.topBidderId,
+        'buyerName': auction.topBidderName ?? 'Unknown Buyer',
+        'sellerId': auction.sellerId,
+        'sellerName': listingData['sellerName'] ?? 'Unknown Seller',
+        'listingId': auction.listingId,
+        'listingTitle': listingData['title'] ?? 'Auction Item',
+        'listingImages': listingData['images'] ?? [],
+        'price': auction.currentPrice, // Final winning bid price
+        'status': 'pending', // Start as pending, seller needs to confirm
+        'createdAt': FieldValue.serverTimestamp(),
+        'isFromAuction': true, // Flag to identify auction purchases
+        'auctionId': auctionId,
+      });
+      
+      // Update the listing to mark as unavailable
+      await _listingsCollection.doc(auction.listingId).update({
+        'isAvailable': false,
+        'soldViaAuction': true,
+        'auctionSoldAt': FieldValue.serverTimestamp(),
+        'soldTo': auction.topBidderId,
+        'soldToName': auction.topBidderName,
+      });
+      
+      print('Created purchase for auction winner: ${auction.topBidderName}');
+    } catch (e) {
+      print('Error creating purchase for ended auction: $e');
+      // Don't rethrow - we want to handle this gracefully
     }
   }
   
@@ -432,6 +546,37 @@ class FirestoreService {
     }
   }
 
+  // Get bids by user ID - only auctions where the buyer actually participated (placed bids)
+  Stream<List<BidModel>> getUserBids(String bidderId) {
+    return _bidsCollection
+        .where('bidderId', isEqualTo: bidderId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          final allBids = snapshot.docs
+              .map((doc) => BidModel.fromFirestore(doc))
+              .toList();
+          
+          // Group bids by auction and keep only the latest bid per auction
+          // This ensures each auction appears only once, even if user placed multiple bids
+          final Map<String, BidModel> latestBidPerAuction = {};
+          
+          for (final bid in allBids) {
+            // If we haven't seen this auction or this bid is more recent, keep it
+            if (!latestBidPerAuction.containsKey(bid.auctionId) ||
+                latestBidPerAuction[bid.auctionId]!.timestamp.isBefore(bid.timestamp)) {
+              latestBidPerAuction[bid.auctionId] = bid;
+            }
+          }
+          
+          // Return the latest bid for each auction, sorted by timestamp (most recent first)
+          final uniqueAuctionBids = latestBidPerAuction.values.toList();
+          uniqueAuctionBids.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          
+          return uniqueAuctionBids;
+        });
+  }
+
   // Get recommended listings based on user preferences (rule-based)
   Future<List<ListingModel>> getRecommendedListings(UserModel user, {int limit = 10}) async {
     // In a real implementation, this would use the rule-based recommendation system
@@ -488,9 +633,7 @@ class FirestoreService {
       
       // If auction is expired but still active, update to ended
       if (auction.status == AuctionStatus.active && auction.endTime.isBefore(now)) {
-        await _auctionsCollection.doc(auctionId).update({
-          'status': AuctionModel.statusToString(AuctionStatus.ended)
-        });
+        await _endAuctionAndCreatePurchase(auctionId, auction);
       }
       
       // If auction was pending but start time has passed, update to active
@@ -501,6 +644,61 @@ class FirestoreService {
       }
     } catch (e) {
       print('Error checking/updating auction status: $e');
+      rethrow;
+    }
+  }
+
+  // End an auction and create purchase for winner
+  Future<void> _endAuctionAndCreatePurchase(String auctionId, AuctionModel auction) async {
+    try {
+      // Start a transaction to ensure atomicity
+      await _firestore.runTransaction((transaction) async {
+        // Update auction status to ended
+        transaction.update(_auctionsCollection.doc(auctionId), {
+          'status': AuctionModel.statusToString(AuctionStatus.ended)
+        });
+        
+        // If there's a winner (top bidder), create a purchase
+        if (auction.topBidderId != null) {
+          // Get the listing details
+          DocumentSnapshot listingDoc = await _listingsCollection.doc(auction.listingId).get();
+          if (listingDoc.exists) {
+            final listingData = listingDoc.data() as Map<String, dynamic>;
+            
+            // Create purchase document
+            final purchaseRef = _firestore.collection('purchases').doc();
+            transaction.set(purchaseRef, {
+              'buyerId': auction.topBidderId,
+              'buyerName': auction.topBidderName ?? 'Unknown Buyer',
+              'sellerId': auction.sellerId,
+              'sellerName': listingData['sellerName'] ?? 'Unknown Seller',
+              'listingId': auction.listingId,
+              'listingTitle': listingData['title'] ?? 'Auction Item',
+              'listingImages': listingData['images'] ?? [],
+              'price': auction.currentPrice, // Final winning bid price
+              'status': 'pending', // Start as pending, seller needs to confirm
+              'createdAt': FieldValue.serverTimestamp(),
+              'isFromAuction': true, // Flag to identify auction purchases
+              'auctionId': auctionId,
+            });
+            
+            // Update the listing to mark as unavailable
+            transaction.update(_listingsCollection.doc(auction.listingId), {
+              'isAvailable': false,
+              'soldViaAuction': true,
+              'auctionSoldAt': FieldValue.serverTimestamp(),
+              'soldTo': auction.topBidderId,
+              'soldToName': auction.topBidderName,
+            });
+            
+            print('Created purchase for auction winner: ${auction.topBidderName}');
+          }
+        } else {
+          print('Auction ended with no bids');
+        }
+      });
+    } catch (e) {
+      print('Error ending auction and creating purchase: $e');
       rethrow;
     }
   }
