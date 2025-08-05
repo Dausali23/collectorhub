@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
+import '../../services/admin_service.dart';
+import 'package:intl/intl.dart';
 
 class AdminManageScreen extends StatefulWidget {
   final UserModel user;
@@ -61,6 +63,32 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
         break;
     }
   }
+
+  DateTime _parseDate(dynamic dateStr) {
+    try {
+      if (dateStr is String) {
+        // Handle Firebase Auth metadata date format: "Sat, 21 Jun 2025 03:18:51 GMT"
+        if (dateStr.contains('GMT')) {
+          // Use DateFormat to parse RFC 1123 format
+          final formatter = DateFormat('EEE, dd MMM yyyy HH:mm:ss');
+          final dateWithoutGMT = dateStr.replaceAll(' GMT', '');
+          return formatter.parse(dateWithoutGMT, true); // true for UTC
+        }
+        // Handle ISO format: "2025-06-21T03:18:51.000Z"
+        else if (dateStr.contains('T') && dateStr.contains('Z')) {
+          return DateTime.parse(dateStr);
+        } 
+        // Try general parse
+        else {
+          return DateTime.parse(dateStr);
+        }
+      }
+      return DateTime.now();
+    } catch (e) {
+      print('Error parsing date: $dateStr, error: $e');
+      return DateTime.now();
+    }
+  }
   
   Future<void> _loadUsers() async {
     setState(() {
@@ -68,34 +96,87 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
     });
     
     try {
-      final QuerySnapshot querySnapshot = await _firestore.collection('users').get();
+      // Get users from admin backend
+      final response = await AdminService.getAllUsers();
       
-      final List<Map<String, dynamic>> loadedUsers = [];
-      
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+      if (response['success'] == true && response['users'] != null) {
+        final List<Map<String, dynamic>> loadedUsers = [];
         
-        // Skip the current admin user
-        if (doc.id == widget.user.uid) continue;
+        for (var userData in response['users']) {
+          // Skip the current admin user
+          if (userData['uid'] == widget.user.uid) continue;
+          
+          // Attempt to get Firestore data if needed
+          Map<String, dynamic> firestoreData = {};
+          try {
+            final doc = await _firestore.collection('users').doc(userData['uid']).get();
+            if (doc.exists) {
+              firestoreData = doc.data() as Map<String, dynamic>;
+            }
+          } catch (e) {
+            // Silently continue if Firestore fetch fails
+          }
+          
+          loadedUsers.add({
+            'id': userData['uid'],
+            'email': userData['email'] ?? 'No email',
+            'name': userData['displayName'] ?? firestoreData['displayName'] ?? 'Unknown',
+            'role': firestoreData['role'] ?? 'buyer',
+            'joinDate': firestoreData['createdAt'] != null 
+                ? (firestoreData['createdAt'] as Timestamp).toDate() 
+                : userData['metadata']?['creationTime'] != null 
+                    ? _parseDate(userData['metadata']['creationTime']) 
+                    : DateTime.now(),
+          });
+        }
         
-        loadedUsers.add({
-          'id': doc.id,
-          'email': data['email'] ?? 'No email',
-          'name': data['displayName'] ?? 'Unknown',
-          'role': data['role'] ?? 'buyer',
-          'joinDate': data['createdAt'] != null 
-              ? (data['createdAt'] as Timestamp).toDate() 
-              : DateTime.now(),
+        // Sort by join date (newest first)
+        loadedUsers.sort((a, b) => (b['joinDate'] as DateTime).compareTo(a['joinDate'] as DateTime));
+        
+        setState(() {
+          _users = loadedUsers;
+          _isLoading = false;
         });
+      } else {
+        // Fallback to Firestore if Admin API fails
+        final QuerySnapshot querySnapshot = await _firestore.collection('users').get();
+        
+        final List<Map<String, dynamic>> loadedUsers = [];
+        
+        for (var doc in querySnapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          
+          // Skip the current admin user
+          if (doc.id == widget.user.uid) continue;
+          
+          loadedUsers.add({
+            'id': doc.id,
+            'email': data['email'] ?? 'No email',
+            'name': data['displayName'] ?? 'Unknown',
+            'role': data['role'] ?? 'buyer',
+            'joinDate': data['createdAt'] != null 
+                ? (data['createdAt'] as Timestamp).toDate() 
+                : DateTime.now(),
+          });
+        }
+        
+        // Sort by join date (newest first)
+        loadedUsers.sort((a, b) => (b['joinDate'] as DateTime).compareTo(a['joinDate'] as DateTime));
+        
+        setState(() {
+          _users = loadedUsers;
+          _isLoading = false;
+        });
+        
+        // Show warning about Admin API
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Warning: Using Firestore data instead of Admin API. ' +
+                (response['error'] != null ? 'Error: ${response['error']}' : '')),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
-      
-      // Sort by join date (newest first)
-      loadedUsers.sort((a, b) => (b['joinDate'] as DateTime).compareTo(a['joinDate'] as DateTime));
-      
-      setState(() {
-        _users = loadedUsers;
-        _isLoading = false;
-      });
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -240,20 +321,30 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
     });
     
     try {
-      // Delete user document from Firestore
-      await _firestore.collection('users').doc(userId).delete();
+      // Delete user using Admin API
+      final response = await AdminService.deleteUser(userId);
       
-      // Note: This doesn't delete the Firebase Auth user, which would require admin SDK or Cloud Functions
-      // For a complete implementation, you'd need to set up a Firebase Cloud Function to delete the auth user
-      
-      setState(() {
-        _users.removeWhere((user) => user['id'] == userId);
-        _isLoading = false;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User deleted successfully')),
-      );
+      if (response['success'] == true) {
+        setState(() {
+          _users.removeWhere((user) => user['id'] == userId);
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User deleted successfully')),
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting user: ${response['error'] ?? 'Unknown error'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -366,6 +457,7 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
   Future<void> _editUser(Map<String, dynamic> user) async {
     final TextEditingController nameController = TextEditingController(text: user['name']);
     final TextEditingController emailController = TextEditingController(text: user['email']);
+    final TextEditingController passwordController = TextEditingController();
     String selectedRole = user['role'];
     
     final bool? result = await showDialog<bool>(
@@ -384,6 +476,15 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
               controller: emailController,
               decoration: const InputDecoration(labelText: 'Email'),
               enabled: false, // Email should not be editable
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                hintText: 'Leave blank to keep current password',
+              ),
+              obscureText: true,
             ),
             const SizedBox(height: 15),
             DropdownButtonFormField<String>(
@@ -420,24 +521,56 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
     });
     
     try {
-      await _firestore.collection('users').doc(user['id']).update({
+      // Update user using Admin API
+      final Map<String, dynamic> updateData = {
         'displayName': nameController.text.trim(),
         'role': selectedRole,
-      });
+      };
       
-      setState(() {
-        // Update local list
-        final index = _users.indexWhere((u) => u['id'] == user['id']);
-        if (index != -1) {
-          _users[index]['name'] = nameController.text.trim();
-          _users[index]['role'] = selectedRole;
-        }
-        _isLoading = false;
-      });
+      // Only include password if it was entered
+      if (passwordController.text.isNotEmpty) {
+        updateData['password'] = passwordController.text;
+      }
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User updated successfully')),
+      final response = await AdminService.updateUser(
+        uid: user['id'],
+        displayName: nameController.text.trim(),
+        role: selectedRole,
+        password: passwordController.text.isEmpty ? null : passwordController.text,
       );
+      
+      if (response['success'] == true) {
+        // Also update in Firestore for consistency
+        await _firestore.collection('users').doc(user['id']).update({
+          'displayName': nameController.text.trim(),
+          'role': selectedRole,
+        });
+        
+        setState(() {
+          // Update local list
+          final index = _users.indexWhere((u) => u['id'] == user['id']);
+          if (index != -1) {
+            _users[index]['name'] = nameController.text.trim();
+            _users[index]['role'] = selectedRole;
+          }
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User updated successfully')),
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating user: ${response['error'] ?? 'Unknown error'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -532,26 +665,235 @@ class _AdminManageScreenState extends State<AdminManageScreen> with SingleTicker
     );
   }
   
+  // Add a new user
+  Future<void> _createUser() async {
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmPasswordController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    String selectedRole = 'buyer';
+    final _formKey = GlobalKey<FormState>();
+    
+    final bool? result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New User'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  validator: (val) => val!.isEmpty ? 'Enter full name' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: const Icon(Icons.email),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (val) => val!.isEmpty ? 'Enter an email' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: phoneController,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: const Icon(Icons.phone),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (val) => val!.isEmpty ? 'Enter phone number' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    hintText: 'Minimum 6 characters',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  obscureText: true,
+                  validator: (val) => val!.length < 6 ? 'Password must be at least 6 characters' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  obscureText: true,
+                  validator: (val) {
+                    if (val!.isEmpty) {
+                      return 'Please confirm password';
+                    }
+                    if (val != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  decoration: InputDecoration(
+                    labelText: 'Role',
+                    prefixIcon: const Icon(Icons.admin_panel_settings),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'buyer', child: Text('Buyer')),
+                    DropdownMenuItem(value: 'seller', child: Text('Seller')),
+                  ],
+                  onChanged: (value) {
+                    selectedRole = value!;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                Navigator.pop(context, true);
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result != true) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      // Create user with Admin API
+      final response = await AdminService.createUser(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+        displayName: nameController.text.trim(),
+        role: selectedRole,
+        phoneNumber: phoneController.text.trim(),
+      );
+      
+      if (response['success'] == true) {
+        // Reload users list
+        await _loadUsers();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User created successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating user: ${response['error'] ?? 'Unknown error'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating user: $e')),
+      );
+    }
+  }
+
   Widget _buildUsersTab() {
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search users...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search users...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _userSearchQuery = value;
+                    });
+                  },
+                ),
               ),
-              filled: true,
-              fillColor: Colors.grey[100],
-            ),
-            onChanged: (value) {
-              setState(() {
-                _userSearchQuery = value;
-              });
-            },
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: _createUser,
+                icon: const Icon(Icons.person_add),
+                label: const Text('Add User'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                ),
+              ),
+            ],
           ),
         ),
         
