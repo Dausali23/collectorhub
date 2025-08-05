@@ -1,0 +1,1180 @@
+UNIVERSITI TEKNOLOGI MARA
+
+
+
+COLLECTORHUB: A MOBILE APPLICATION MARKETPLACE FOR THE COLLECTOR COMMUNITY BY USING REAL-TIME BIDDING INTEGRATION
+
+
+
+MUHAMMAD FIRDAUS BIN ALI
+
+
+
+
+BACHELOR OF COMPUTING SCIENCE (HONS.) 
+NETCENTRIC COMPUTING
+
+
+
+
+
+JANUARY 2025
+
+UNIVERSITI TEKNOLOGI MARA
+
+
+
+COLLECTORHUB: A MOBILE APPLICATION MARKETPLACE FOR THE COLLECTOR COMMUNITY BY USING REAL-TIME BIDDING INTEGRATION
+
+
+
+MUHAMMAD FIRDAUS BIN ALI
+
+
+
+
+Thesis submitted in fulfilment of the requirements for Bachelor of Computer Science (Hons.) Netcentric Computing College of Computing, Informatics and Mathematics
+
+
+
+
+JANUARY 2025
+
+SUPERVISOR APPROVAL
+
+
+PROJECT TITLE
+
+By
+
+MUHAMMAD FIRDAUS BIN ALI
+2023301351
+
+The thesis was prepared under the supervision of the project supervisor, Mohammad Hafidz bin Rahmat. It was submitted to the College of Computing, Informatics and Mathematics and was accepted in partial fulfilment of the requirements for the degree of Bachelor of Computer Science (Hons.) Netcentric Computing.
+
+
+
+Approved by
+
+
+………………………………………….
+MOHAMMAD HAFIDZ BIN RAHMAT
+Project Supervisor
+
+
+JANUARY 7, 2025
+
+
+STUDENT DECLARATION
+
+
+I certify that this thesis and the project to which it refers is the product of my own work and that any idea or quotation from the work from the work of other people, published or otherwise are fully acknowledged in accordance with the standard referring to practices of the discipline.
+
+
+
+……………………………………..
+MUHAMMAD FIRDAUS BIN ALI
+2023301351
+
+
+
+JANUARY 7, 2025
+
+
+
+ACKNOWLEDGEMENT
+
+
+Alhamdulillah, praises and thanks to Allah for His grace and blessings, which have enabled me to complete this proposal successfully within the given timeframe. First and foremost, I want to sincerely thank Sir Mohammad Hafidz Bin Rahmat, my supervisor, for his essential advice, helpful criticism, and unwavering support during this project. His knowledge and support have been crucial in determining the course and outcome of this study. Additionally, I want to express my sincere gratitude to my parents for their constant support, prayers, and unending love. Throughout this journey, their support has been a source of inspiration and strength. Lastly, I want to thank my friends for their assistance and providing moral support during the development of this project. 
+
+
+
+TABLE OF CONTENTS
+
+
+CONTENT											 PAGE
+SUPERVISOR APPROVAL 								         ii
+STUDENT DECLARATION								        iii
+ACKNOWLEDGEMENT									        iv
+TABLE OF CONTENTS									         v
+LIST OF FIGURES										      viii
+LIST OF TABLES										         x
+CHAPTER 1	1
+INTRODUCTION	1
+1.1 Project background	1
+1.2 Problem Statement	2
+1.2.1 Lack of a focused platform for collectors.	2
+1.2.2 Challenges in finding collectibles and the best price discovery for collectibles.	2
+1.2.3 Lack of community-based support for collectors.	3
+1.3 Project Aim	3
+1.4 Project Objective	4
+1.5 Project Scope	4
+1.5.1 Target users	4
+1.5.2 Platform	4
+1.5.3 Functionality	5
+1.5.4 Technology	5
+1.5.5 Technique	5
+1.6 Significance	5
+1.6.1 Specialized Collector Marketplace	5
+1.6.2 Enhanced Collectibles and Price Discovery	6
+
+
+1.6.3 Improving Community Engagement Among Collectors	6
+1.7 Summary	6
+CHAPTER 2	8
+LITERATURE REVIEW	8
+2.1 Collectibles market	8
+2.2  Challenges	9
+2.3 Auction Technology	9
+2.3.1 Real-Time Bidding (RTB)	9
+2.3.2 Online Bidding	10
+2.3.3 Auction TechnologyComparison	11
+2.4 Real-Time Chat	12
+2.5 Database	13
+2.5.1 Firebase	14
+2.5.2 SQLite	14
+2.5.3 Database Comparison	15
+2.6 Recommendation System	16
+2.6.1 Rule-based	16
+2.6.2 Content Based	17
+2.6.3 Collaborative Filtering	17
+2.6.4 Recommendation System Comparison	18
+2.7 eBay API	18
+2.8 Related Work	19
+2.8.3 Carousell	19
+2.8.4 Collectr	20
+2.8.5 Related Work Comparison	21
+CHAPTER 3	23
+PROJECT METHODOLOGY	23
+3.1 Project Methodology	23
+
+
+3.2 Project Framework	23
+3.3 Requirement Analysis	26
+3.3.1 Hardware Requirement	26
+3.3.2 Software Requirement	27
+3.4 Application Design	27
+3.4.1 Use case Diagram	27
+3.4.2 Flowchart	31
+3.4.3 Model Relationship Diagram (MRD)	42
+3.4.4 Interface Design	46
+3.4.5 System Architecture	60
+3.5 Application Development	61
+3.5.1 Module	61
+3.5.2 Selling items using Firebase	63
+3.5.4 Chat integration using Firebase	65
+3.5.5 Implementing market price using eBay API	66
+3.5.6 Rule-Based Recommendation System Implementation	68
+3.6 Testing	70
+3.6.1 Accuracy Testing	70
+3.6.2 Functionality Testing	71
+3.7 Documentation	72
+3.7.1 Project Milestone	72
+3.8 Chapter summary	74
+REFERENCES
+
+
+LIST OF FIGURES
+
+FIGURE										          PAGES
+2.1 Real-Time Bidding process							        	        10
+2.2 Carousell Website									                    20
+2.3 Collektr Website									                    21
+3.1 Waterfall Methodology								       	        24
+3.2 CollectorHub use case diagram							      	        28
+3.3 Flowchart of user login and register module					      	        31
+3.4 User Profile flowchart								      	        32
+3.5  Chat module flowchart								       	        33
+3.6 Buying module flowchart								       	        34
+3.7 Selling module add collectibles flowchart					       	        35
+3.8 Selling module create auction flowchart						        	        36
+3.9 Selling module edit selling collectibles flowchart				       	        37
+3.10 selling module edit created auction flowchart					     	        38
+3.11 selling module delete created selling collectibles flowchart			     	        39
+3.12 Selling module delete created auction flowchart				     	        40
+3.13 Admin login flowchart								      	        41
+3.14 MRD for User									       	        42
+3.15  MRD for Collectibles								      	        43
+3.16  MRD for Auction								     	        43
+3.17 MRD for Chat									       	        44
+3.18  MRD for Notification								        	        45
+3.19  System Architecture								  	        60
+3.20  Initialization pseudocode							        	        64
+3.21  Place bid Pseudocode								  	        65
+3.22  Update bid amount Pseudocode						     		        65
+3.23  Sending messages Pseudocode							     	        66
+3.24 Update messages Pseudocode							        	        66
+3.25  eBay API connection pseudocode						      	        67
+
+
+3.26   Store price pseudocode								       	        67
+3.27 Store fetched eBay API Pseudocode						       	        68
+3.28  Rule-based structure pseudocode						        	        69
+
+
+LIST OF TABLES 
+
+
+TABLE  											 PAGE 2.1  Comparison between online bidding and Real-Time Bidding			        	        12
+2.2 Comparison between Firebase and SQLite					       	        16
+2.3  Comparison of Recommendation System					 	        18
+2.4 Related Work Comparison								        22
+3.1 Project methodology based on Waterfall Methodology				       	        24
+3.2 Hardware Project Requirements							        	        26
+3.3 Software Project Requirements							        	        27
+3.4 Actor in Use Case									        	        28
+3.5 Use Case Description								       	        29
+3.6 CollectorHub User Interface Design						        	        46
+3.7  Login module									        	        61
+3.8  Buyer module									        	        61
+3.9 Seller module									        	        62
+3.10  Admin module									        	        63
+3.11  Accuracy Testing checklist							        	        70
+3.12 Accuracy testing checklist							        	        71
+3.13  Documentation									        	        72
+
+
+
+
+
+
+
+
+
+CHAPTER 1
+
+
+INTRODUCTION
+
+1.1	Project background
+Existing products such as Funko Pops, trading cards and older toys tend to drastically increase in value based on their rarity, condition and generated market demands, making them hot selling commodities for collectors. This is usually the case with some of these items because their value is quickly changing because of trends, rarity, and other such like factors, available market data show that these may not have fairly well fixed market price levels (Ken Research, 2021). Real time tracking of prices is crucial in so that collectors are able to make informed decisions based on buying and selling prices as history and even current market demands much dictate the value of collectibles (Frost & Sullivan, 2022). 
+
+A collector is an individual that gathers objects of a particular category for business purposes or for leisure. Accordingly, those collectors often seek objects that are exclusive or have sentimental value or are unique or are costly. These include the objects of monetary and sentimental value that can be trading cards and toys or antiques and souvenirs. In addition to being an enjoyable hobby, collecting can help you meet people who have similar interests.
+
+Existing online marketplaces for collectibles often lack both comprehensive price discovery mechanisms and effective community features. Many platforms require users to communicate externally, impacting security and transaction transparency (Huang et al., 2023). In order to meet these gaps, the CollectorHub has provided a real-time bidding feature and the bid price is adjusted in real time as well. Also, there is a possibility to chat within the application, which is useful to organize the communication inside the app and keep the conversation safe; thus, the community of collectors is meaningful and active. Adding prices, bids, and community to CollectorHub enhances trading and addresses issues in the collectibles industry.
+
+1.2	Problem Statement
+1.2.1	Lack of a focused platform for collectors.
+Trading card collectors, Funko Pop collectors, and collectors of old toys face some issues because there is no app exclusive to collecting. However, these general marketplaces may not contain attributes that are critical to serious collectors, for instance, category, verification, and c-Communal aspects (Ken Research, 2021). Consequently, collectors are forced to use scattered, unregulated platforms, resulting in inconsistent experiences and unstandardized processes (Frost & Sullivan, 2022). CollectorHub aims to provide a dedicated, user-focused marketplace to address these challenges.
+
+1.2.2 Challenges in finding collectibles and the best price discovery for collectibles.
+The lack of reliable methods in the collectibles market for establishing trustworthy price discovery results in erratic or inaccurate evaluations. This is often hard to set since prices for candies like the Funko Pops or Pokémon and other varieties often rely on issues like the commodity’s availability, the demand level, and the state of the product. Because of this lack of transparency, the vendors may undercharge their products, or the purchasers may overcharge (Frost & Sullivan, 2022). To address this issue, the real-time bidding and the price tracking are added into CollectorHub and allow price changes according to the market to ensure the collectibles are sold at a reasonable price (Huang, Hou, Peng, Dong, and Zhang, 2023).
+
+1.2.3	Lack of community-based support for collectors.
+Due to the lack of reliable price discovery mechanisms in the collectibles market, the assessments made are often inconsistent or simply wrong. For a collector, it is often very difficult to set a fair price for Funko Pops and Pokémon cards, as well as other items which are valued based on the number of copies printed, people’s desire to possess them, and their condition. Because of this, there is a tendency by vendors to underprice their products or on the other hand, the buyers overprice the products (Frost & Sullivan, 2022). To address this challenge, CollectorHub have incorporated real-time bidding and price tracking which allows for price change occasioned by the market and ensures that collections items sell at a correct market price (Huang, Hou, Peng, Dong, and Zhang, 2023).
+
+1.3	Project Aim
+The goal of this FYP is to evaluate the effectiveness of the CollectorHub mobile application as a platform for efficient buying and selling within the collector community by using Real-Time Bidding technology. This project will integrate with API like eBay to get the pricing data. This project will develop an in-app chat feature for the community to communicate with each other.
+
+1.4	Project Objective 
+To develop a mobile application for collectors to buy and sell their collectibles with the addition of a real-time bidding feature.
+To evaluate the effectiveness of the CollectorHub mobile application by conducting functionality, usability, and security testing to ensure a reliable and user-friendly platform.
+
+1.5	Project Scope
+The scope of the project is divided into four parts, which are the target users, functionality, technology and technique.
+
+1.5.1	Target users
+CollectorHub offers a wide range of users, including professional and hobbyist collectors who want to buy and sell items like vintage toys, trading cards, action figures and other collectibles. This application serves both customers searching for certain collectibles items within a trustworthy community and sellers seeking a specialized and secure marketplace.
+
+1.5.2	Platform
+This project focuses on the development of mobile applications that can be accessed via Android smartphones. This project is developed using Flutter.
+
+1.5.3	Functionality 
+CollectorHub offers comprehensive functionalities for collectors. Sellers can list items for sale with description, image, video and pricing details. Sellers can also initiate a real-time bidding session and other users can participate. This project also has a community chat where users may communicate, exchange information, help and talk about subjects that promote interaction with the collector community. For every user, this feature set guarantees an interesting, open, and helpful marketplace experience.
+
+1.5.4	Technology 
+CollectorHub is a mobile application developed using Flutter, an efficient framework for building cross-platform applications. Other technologies are Third-party APIs like the eBay API for pricing information, listing management and real-time bidding technology.
+
+1.5.5	Technique 
+To improve user interaction and discovery, the project makes use of a rule-based approach. In-app bidding algorithms, real-time price changes, and auto-recommendation tools based on search history and user preferences are all examples of this. These methods are intended to enhance decision-making across the app and maximize user engagement.
+
+1.6	Significance 
+1.6.1	Specialized Collector Marketplace
+CollectorHub will create a marketplace that will be exclusively for collectors, making the transaction as easy as possible. This specific application will enhance the general experience for the collectors since they will be presented with a single platform that is tailored to their needs of advertising their items for sale and other aspects of the selling/buying process.
+
+1.6.2	Enhanced Collectibles and Price Discovery
+The product offering for CollectorHub is to make the price discovery of collectibles transparent and real-time through features such as bidding and pricing. By helping consumers to understand the actual market value of products, this will encourage people to transact fairly with no compromise as per over pricing or under pricing. Users will one day benefit from this method as it fosters correct and clear pricing.
+
+1.6.3	Improving Community Engagement Among Collectors
+CollectorHub will incorporate interactive chat features that will help develop a rich and active community through the sharing of information, assistance and conversation regarding collectors’ items. This functionality enhances the overall platform experience and increases collector engagement as well as the activity of the user base.
+
+1.7	Summary 
+This chapter has provided an in-depth overview of the CollectorHub project, including the problem statement, sketch objectives, defining the project’s scope, and significance. In order to fill current gaps in the collector community, such as the absence of trustworthy verification and real-time price discovery, CollectorHub plans to create a specialized mobile application marketplace. To facilitate easy purchasing and selling, the site will have community chat capabilities, real-time bidding, and thorough item verification. By doing this, CollectorHub will create a thriving, reliable collector community that will promote market expansion and user interaction.
+
+The challenges identified include the lack of a focused platform for collectors, the problem of where to locate the Collectibles they are interested in, and fair price discovery of the product and services they seek, and no support from the collectors community. To address these issues CollectorHub as a platform provides features like niche collector to collector marketplace, enabling real-time bidding, better discovery of prices and items and in-app messaging. Thus, CollectorHub aims at improving the collector market by presenting the opportunity to be flexible, communicate with like-minded people and make safe and effective transactions.
+
+CollectorHub aims to be a trusted platform for the collector community by making a dedicated marketplace, providing a clear price range for collectibles and building collector connections among the community. 
+CHAPTER 2
+
+LITERATURE REVIEW
+
+2.1	Collectibles market
+
+The market for collectibles, which includes a wide range of products like fine art, sport memorabilia and toys has always been interested to the collectors or investors (Jonathan E. Hughes, 2022). Since rarity has a direct impact on demand and pricing in the market for collectibles, it is important to know the value of the collectibles (Jonathan E. Hughes, 2022). This idea is especially relevant to CollectorHub since by using services like pricing history, users can identify rarity and demand with a great degree of accuracy.
+
+Throughout the past 20 years, toy fandom communities have grown thanks to social media platforms like Facebook and Instagram, where numerous collecting clubs and toy enthusiasts create private groups and communicate (Robert Raisbeck, 2023). These societies have made it more acceptable for adults to collect and play with toys since they can assist many people come out of the toy vault by connecting them with people who share their interests (Robert Raisbeck, 2023). These features of the application can, for example, be discussion sections and a real-time chat that can assist CollectorHub in creating the sensation of the community among the users. One way CollectorHub may be replicating the positive environment these communities provide is by creating a hub specifically for collectors that encourages collectors to work together.
+
+
+
+2.2 	Challenges 
+2.3	Auction Technology
+2.3.1	Real-Time Bidding (RTB)
+
+Real-Time Bidding (RTB) is one of advanced technology in online marketplace. RTB is a method in which each requested impression is used to auction off pre-determined advertising space, such as a splash screen in an app or a banner ad on a website(Veale, M., & Borgesius, F. Z., 2022). RTB allows customers to put bids in real time and guarantees dynamic and competitive pricing for every item. Potential advertising space may be put up for auction using generic information that does not personally identify a viewer, such as the time of day, the nation in which the viewer has internet access, the content of the page the advertisement appears on, and so on(Veale, M., & Borgesius, F. Z., 2022). For example, promoting popular artifacts or conducting time-sensitive auctions might assist customize user experience while ensuring the platform's relevance and transparency.
+
+Real-Time bidding (RTB) systems, which employ auctions to distribute user impressions originating at digital publishers to rival advertisers or resellers like demand-side platforms (DSPs), are the most common method of selling ad impressions on ad exchanges (AdXs) (Waisman, C., Nair, H. S., & Carrion, C., 2024). This shows how crucial automated systems are to RTB systems and how values must be continuously measured and adjusted in response to market changes. Demand-side platforms (DSP) should ideally be able to assist each advertiser in maximizing ad clicks or decreasing cost-per-click (CPC) given the fixed budget by optimizing the bidding strategy (Liu, 2020). The platform assists the collectors in how best to bid to ensure that they get the items they desire within their given financial capabilities.
+
+
+Figure 2.1 Real-Time Bidding process
+
+2.3.2	Online Bidding
+
+Online bidding are becoming more and more popular these days as the Internet becomes a significant commercial force(Cui, X., Lai, V. S., Lowry, P. B., & Lei, Y., 2020). Since eBay's initial debut in 1995, people have been drawn to online auctions because of its dynamic and adaptable pricing structures(Cui, X., Lai, V. S., Lowry, P. B., & Lei, Y., 2020). People might use online bidding platforms to bid for goods from foreign websites without being restricted by geography or cost, bypassing domestic platforms (Liu, M., Yue, W, 2020). This shows how flexible it could be for online bidding.
+The structured framework of online bidding enhances the user experience by enabling real-time monitoring and competitive pricing. This dynamic approach benefits participants by providing opportunities to adjust bids based on the evolving competitive landscape, ensuring an engaging and transparent process (Amrita, Akanksha, Sneha, Vaibhavee & Pranali, 2021). Moreover, the elimination of geographical barriers makes online bidding an inclusive option for individuals and organizations, expanding its applicability across various industries, from e-commerce to enterprise procurement(Liu, M., 2020).
+Snipe bidding also known as late bidding is a strategy whereby bidders wait until the last time to bid on an auction(Cui, X., Lai, V. S., Lowry, P. B., & Lei, Y., 2020). This approach can prevent the ‘race to the bottom’ and enables a bidder to beat other bidders by taking a long time to respond (Cui, X., Lai, V. S., Lowry, P. B., & Lei, Y., 2020). While being quite useful, this strategy is rather delicate and can turn into a failure if some technical problems occur at the final stage of the auction.
+To conclude, the improvement of online bidding systems has changed the face of the collectors and the market as a whole, offering them now various means and opportunities to build up their collections. These platforms must be easily accessible by users, yet maintain the stability of the system, and include tools that would allow for different types of bidding approaches and equal treatment of participants.
+
+2.3.3	Auction TechnologyComparison
+
+The analysis of the Online Bidding and Real-Time Bidding also provides the understanding of several features that distinguish them and define the conditions for their effectiveness. Although both systems are used to enable auction-based transactions, their functioning and the application areas are quite distinct.
+
+Synchronous online bidding follows a set schedule and it may take several days or hours to end while the users can bid at any time. On the other hand, RTB conducts auctions immediately, and it can take a few milliseconds (Liu, M., 2020). To CollectorHub, RTB is beneficial in that it is an instantaneous process for determining the price of collectibles and for providing market reactions to specific listings of rare items.
+
+Online bidding also allows more flexibility in users’ participation during the bidding window including snipe bidding (Cui, X., Lai, V. S., Lowry, P. B., & Lei, Y., 2020). However, RTB involves more engagement from the user and the campaign requires this engagement to be real time based, thus it is more of a challenge. This real-time engagement is important for CollectorHub because it enables fair and accurate determination of the market prices for collectibles in the shortest time possible, and eliminates cases of price bid-rigging at the last minute.
+
+The use of RTB for CollectorHub can be considered as a right decision that supports the platform’s objectives to bring together collectors, manufacturers, and sellers to create an effective, clear and flexible marketplace for them. As a comparison, RTB has advantages over the conventional online bidding because the latter is immediate and the price changes from time to time which fits the collectibles market, which is characterized by high sensitivity to the price.
+
+Table 2.1  Comparison between online bidding and Real-Time Bidding
+Aspect
+Online Bidding
+Real-Time Bidding
+Timing
+Auctions last for a predefined period (e.g., days or hours).
+Auctions occur instantly, often in milliseconds.
+Engagement
+Users can participate at any time during the bidding window.
+Requires active and immediate participation from users.
+Pricing Mechanism
+Prices increase incrementally over time until the auction ends.
+Prices are determined dynamically based on live demand.
+Suitability
+Best for static or long-duration transactions.
+Ideal for dynamic, high-demand markets like collectibles.
+
+
+2.4	Real-Time Chat
+
+Instant messaging is now clearly an essential part of contemporary media communication technology that shapes the way people interact with the medium (Bedare, A., 2023). With millions of smartphone users using chat apps each month, chat apps have become incredibly popular among Internet users and smartphone owners (Bedare, A., 2023). The introduction of real time chat technology has brought significant change to online communication by allowing messages exchange and immediate responses.
+
+WebRTC may be used to create a quick and responsive video call application since it enables direct audio and video communication via a web browser without the need for other plugins (Davyan, 2024). This feature enhances complex network management capabilities as well as complex dynamic bitrate management systems, which are used to sustain communication quality irrespective of emerging network conditions.
+
+Real time chat systems have adopted various features that help in improving the experience of the users. By fulfilling the roles of persuasion and information, live chat may boost online sales conversion (Sun, 2020). Their studies show that real-time chat does not only help in communication but also helps in answering users’ questions and concerns in real time and greatly enhance the users’ satisfaction.
+
+For the CollectorHub project, real-time chat technology is a requirement; it paves the way for many benefits for the collector community. The technology also provides an opportunity for collectors and sellers to engage in real-time communication and, therefore, discussions or bargaining.
+
+2.5	Database
+Database systems are essential to contemporary applications because they provide the framework for managing, retrieving, and storing data (Aburuotu & Asagba, 2020). These system offer a logical means of organizing data while at the same time offering methods of maintaining data integrity, consistency and security. For example in mobile and web applications databases make for data storage of user data, application states and information that is required to be preserved across sessions.
+	
+2.5.1	Firebase
+
+Database plays a crucial role when developing a mobile application to store all the important data. Firebase is one of the NoSql databases that stores and synchronizes data that involves JSON objects (Sudiartha, 2020). Firebase is an ideal database for applications that need quick updates to data (Sudiartha, 2020) . In that case, the Firebase database has been chosen to store the data for the project. There is no need to add servers, divide data, or carry out other database administration tasks that come with keeping your own database backend because the information store is designed to grow with application need (P Chougale, 2021). Therefore, Firebase is a developer-friendly and effective option for mobile application like CollectorHub that need dynamic data handling to provide in-app conversation and bidding feature. 
+
+Increased performance, scalability, availability, and flexibility are all supported by NoSQL databases and are associated with unstructured, semi-structured, or structured data (Sudiartha, 2020). Relational databases have very solid table structures and predetermined data types, whereas NoSql databases allow for quick and simple data structure changes (Sudiartha, 2020).  The flexibility improves user experience and the efficiency of the system of CollectorHub mobile applications. 
+ 
+2.5.2	SQLite
+
+Almost every computer, smartphone, online browser, television, and car has SQLite installed, making it the most extensively used database engine in the world(Gaffney, 2022). It has specific advantages for the mobile application because SQLite is a server-less, self-contained, and highly functional database system. According to Aburuotu and Asagba (2020), SQLite is a slimmed down SQL and is designed specifically for mobile computing, which gives relational database capability on portable device.
+
+While developing SQLite, the focus has been put in designing a system that would be able to efficiently work in environments with limited resources, such as a mobile environment. SQLite aims to be quick, dependable, small and self-contained, and cross-platform (Gaffney, 2022). The database engine is very light during use and can perform well even with limited space.
+
+2.5.3 Database Comparison
+
+Firebase and SQLite therefore as seen are two different techniques of handling of databases in mobile applications with their different advantages and suitability. Firebase mainly stands out for real-time database synchronization, which is a cloud service and works well with other cloud services that means Firebase will be most suitable for applications which require real-time updates across multiple devices. SQLite is local database which means it offers good offline support and direct data manipulation without the need for the network, which is always important when it comes to application availability whether the device is connected to the Internet or not.
+
+The decision to implement Firebase or SQLite in CollectorHub was mainly made based on the real-time update and multiple users interaction need of the project. The real-time database of Firebase allows for the synchronization of bidding data in real-time across users; thus, collectors get notifications instantly of new bids and available items. SQLite is a great solution for local database operations but the cloud basis of Firebase is more suitable for the needs of the project in terms of collaboration and real-time synchronization of the data throughout the devices and users.
+
+
+
+Table 2.2 Comparison between Firebase and SQLite
+Feature 
+Firebase 
+SQLite
+Type
+Cloud-based NoSQL
+Local SQL
+Data Sync
+Real-time automatic
+Manual implementation needed
+Scalability
+Automatic cloud scaling
+Limited by device storage
+Cost
+Use cost
+Free
+Security
+Built-in authentication
+Manual implementation 
+
+
+2.6	Recommendation System
+2.6.1	Rule-based 
+Rule based filtering is one of the basic approaches of the recommendation system, which depends on the rules and conditions set by the domain specialist. In order to offer guidance, relational systems use predefined rules that include details about company procedures and business expertise(Gorchakov, 2024). These rules often work on a "if-then" basis, where specific suggestions are made based on certain criteria. For instance, in an e-commerce environment the rules may be derived from user attributes, previous sites visited, or previous purchases.
+
+The main advantage of rule-based filtering is based on the fact that the recommendation logic is clear and can be easily adjusted as needed. However, rule-based systems may become difficult to maintain as the number of rules increases, and they might not be able to automatically adjust to shifting user preferences (Gorchakov, Maidel, 2024). Nonetheless, rule-based filtering is useful in situations where the recommendation process has to be tightly controlled or where domain knowledge has to be hard wired into the system.
+2.6.2	Content Based
+When user preferences are consistent over time and comprehensive item characteristics are available, content-based filtering performs exceptionally well (Javed, 2021). Whereas, content-based filtering makes suggestions based on the features and traits of the objects, which the users have used or expressed any interest in. This approach generates item descriptions from the features of the items and then matches them with the user’s profile. Overspecialization is a problem with content-based filtering that might limit consumers' ability to find a variety of products by giving them recommendations that are too close to their previous choices (Javed, 2021).
+
+2.6.3	Collaborative Filtering
+Collaborative filtering does not need comprehensive item information but depends on the interaction records between users and items. With the abundance of user interaction data accessible in e-commerce systems, collaborative filtering has shown very good results (Ko, H., 2022). The system suffers from some limitations including new user or item cold start problems or it becomes sparse when the interaction data between users and items is small (Ko, H., 2022). The system has some problems for instance when new users or items enter the system the system is likely to encounter cold-start problems or when the data relating to the number of users’ interaction with items is small the system is likely to encounter minimum problems.
+
+
+2.6.4	Recommendation System Comparison
+
+
+Table 2.3  Comparison of Recommendation System
+Aspect
+Rule-based
+Collaborative filtering
+Content-based
+Approach
+Based on predefined “if-then” conditions, it generates recommendations.
+Uses user item interaction history to make preference predictions.
+It suggests answers based on item attributes and user profiles analysis.
+Complexity
+Simple and transparent. Easy to implement.
+High complexity due to analyzing large user and item datasets.
+Moderate complexity, relies on item and user data.
+Cold Start
+Problem
+No issue, as rules can provide instant recommendations.
+Few recommendations for new users/items where there is no data available.
+Moderate 
+Suitability
+Ideal for real-time, structured systems.
+Recommended for systems where a huge amount of data about users’ interactions is collected.
+Best for systems with detailed user profiles and item data.
+
+
+2.7	eBay API
+
+The eBay API is the gateway for any business or application that wants to make use of the vast marketplace data available on eBay. APIs are essential elements of digital transformation because they allow for quick, precise, and safe linkages between goods, clients, and apps (Ojeda, 2021). The authors note that APIs are used to enable interaction between different programs and services and can help extend businesses fast. Given that eBay is one of the biggest online markets for antiquities and antiques, the eBay API offers very useful price information in the context of the collectibles industry (Altaweel, 2020).
+
+The incorporation of the eBay API to the CollectorHub’s mobile application has many strategic benefits. It offers actual time market value hence helping collectors make informed decisions on the value of the items they intend to buy. API plays a big role in the development ecology of eCommerce, and sites like eBay's API are essential for market research and pricing comparison (Reyes, 2018). The e Commerce and product advertising features of the eBay API are especially important as they give apps access to past price information and current market trends (Ojeda, 2021).
+
+The eBay API will be a great integration in CollectorHub’s mobile application for user know the current pricing of the collectibles. Altaweel (2020) has pointed out that eBay is currently one of the most prominent platforms for the sale of collectibles mainly because of the company’s global presence and simplicity of use. As a result of using eBay API, CollectorHub could offer users the actual prices from the one of the biggest and visited collectibles platforms in the world. 
+
+2.8	Related Work
+2.8.3	Carousell
+Carousell is an online marketplace that connects consumers directly to other consumers through both web application and mobile application. Carousell was created in reaction to the expanding trend of trading used products, especially in the fashion industry, which has the highest level of consumer interest in online shopping (Putri, 2021). It uses the content-based filtering mechanism and has simple options that are aimed at purchasing existing items.
+
+Carousell was created in reaction to the expanding trend of trading used products, especially in the fashion industry, which has the highest level of consumer interest in online shopping. But yet, Carousell is still struggling with its market positioning where it stands at 18th position in the App Store and 34th in the Play Store among similar applications (Putri, 2021). This research also shows that Carousell’s service quality has been rated “good” with an endorsement of 72% satisfaction and consumer trust of 70% but there is still a lot of work to be done in areas like the verification of sellers and fraud control (Putri, 2021).
+
+Carousell is a marketplace for collectors because many users from this application sell collectibles items. But this is an open market where there are various types of items sold there. Sometimes it can be mixed with other items and it is hard to find preferred collectibles. That is the lack of this application because it is not a dedicated application for the collectors.
+
+
+Figure 2.2 Carousell Website
+2.8.4	Collectr
+Collektr is Asia’s ultimate live bidding solution for collectors that provides a one-stop online platform that transforms the way collectors connect, transact, and participate in their passion. The platform stands out through integrating the live streaming commerce and common features of a marketplace and provides a rich and engaging experience for all kinds of collectors, ranging from trading cards, comics, toys, to premium items.
+
+The platform is focused on the live commerce concept in the marketplace. Live auctions are possible and sellers can organize live selling sessions during which they demonstrate the available collectibles, with buyers being able to communicate and bid in real time. This makes a whole new level of engagement to the online collectible market since buyers and sellers are able to interact in a more direct way. 
+
+The lack of this application is that it doesn't have a chat feature built-in in their system as of January 2025. This feature is very important especially for e-commerce application. Buyers and sellers need to chat outside of the apps to ask anything about their items. 
+
+
+Figure 2.3 Collektr Website
+
+2.8.5	Related Work Comparison
+	
+Comparing Carousell, Collektr and CollectorHub, differences in their strategies targeted at the collector and trading community become apparent. All these platforms have various characteristics and capabilities that meet the various facets of the collecting passion and market requirements. 
+
+All three primarily exist and function through mobile applications, with Carousell expanding this base with a website. What Carousell and Collektr have done are to implement the multi-platform approach for its general marketplace function, while
+CollectorHub focused on mobile functionalities.
+
+Table 2.4 Related Work Comparison
+Aspect 
+Carousell 
+Collektr 
+CollectorHub 
+Mobile Application
+⁄
+⁄
+⁄
+Website 
+⁄
+⁄
+X
+Live-streaming auction
+X
+⁄
+X
+Real-Time Bidding
+X
+⁄
+⁄
+In-App Chat
+⁄
+X
+⁄
+For Collector
+X
+⁄
+⁄
+General Items
+⁄
+X
+X
+Rule - based 
+X
+X
+⁄
+
+
+
+
+
+
+
+
+CHAPTER 3
+
+PROJECT METHODOLOGY
+
+3.1	Project Methodology
+
+This chapter presents the project methodology that provides the reader with a clear and concise description of the CollectorHub mobile application. It can be used for scheduling and building the project, outlining the activity in each stage of the chosen method.
+The Software Development Life Cycle (SDLC) needs to be adopted in the development of CollectorHub, which is a mobile application marketplace for collectors. The SDLC model typically comprises six to eight steps: planning, requirements, design, build, documents, test, deploy, and maintenance. In the case of CollectorHub, the Waterfall model has been selected as the main development approach because of its linear and well-organized approach to the project which seems to have clearly outlined requirements and features.
+
+3.2	Project Framework
+
+
+Figure 3.1 Waterfall Methodology
+
+Table 3.1 Project methodology based on Waterfall Methodology
+Phase
+Activities
+Deliverables
+Requirement Analysis
+Collect all the required information for the development of the project.
+
+
+Literature review
+Problem statements
+Project scope 
+Objectives. 
+Software requirement
+Hardware requirement.
+Application Design
+Design use case, flowchart, Model Relational Diagram (MRD) and user interface
+Use case
+Flowchart
+MRD
+User interface.
+Application Development
+Develop real-time bidding system
+Develop recommendation system
+Build chat feature
+Integrate Firebase services
+All function is combined into a single running application.
+ 
+CollectorHub Mobile Application
+Testing
+Planning for the type of test that will be conducted after the application has been developed. Separate section tests for different types of testing are conducted to evaluate accuracy and functionality.
+Error correction.
+ 
+Accuracy testing
+Functionality testing
+Result analysis
+Documentation
+Write a report.
+ 
+Project documentation
+
+
+
+
+
+3.3	Requirement Analysis
+
+The first phase of the CollectorHub framework that is based on the waterfall model is requirement analysis. To get a solid foundation, CollectorHub’s Requirement Analysis includes a few important task. 
+
+3.3.1	Hardware Requirement
+
+Table 3.2 Hardware Project Requirements
+No
+Hardware
+Description 
+1
+Intel(R) Core(TM) i5-10210U CPU @ 1.60GHz   2.11 GHz
+Processor 
+2
+Windows 10
+OS
+3
+NVIDIA GeForce MX130
+Graphics 
+4
+INTEL(R) UHD 
+Graphics 
+5
+12 GB
+RAM
+6
+512 GB
+Storage 
+
+
+
+
+3.3.2	Software Requirement
+
+Table 3.3 Software Project Requirements
+No 
+Software 
+Description 
+1
+Firebase Cloud Firestore
+Database 
+2
+Android Studio
+Run application
+3
+Flutter 
+Framework 
+4
+Canva 
+Design user interface
+5
+Draw.io
+Create use case, MRD and flowchart
+
+
+3.4	Application Design
+
+The second phase in the system development process is the application design phase where detailed sketches of the system and its operations are described. This phase is important in order to gain a greater understanding of the CollectorHub development. Use case diagram, flowchart, Model Relationship Diagram (MRD), user interface design and system architecture will be design and elaborate in this phase.
+
+3.4.1	Use case Diagram
+
+Figure 3.2 shows the CollectorHub’s use case diagram that represent how users interact with the system. User engage in six key aspect which are login, register, chat, profile, buying module and selling module. Admin engage to four key aspect which are login, chat, manage user, manage collectibles.
+
+Figure 3.2 CollectorHub use case diagram
+Table 3.4 Actor in Use Case
+Actor 
+Description 
+User (Buyer and Seller)
+Users are able to buy and sell based on buying module and selling module by using one account.
+Admin
+Administrator can access to manage users, chat to the community and manage collectibles item from seller
+
+
+Table 3.5 Use Case Description
+Use Case 
+Description 
+Register
+Users need to create an account to use ColectorHub.
+Login 
+Users and admins can log in using their registered account to access the application.
+User Profile
+User can view edit and delete their profile information based on their preferences,
+Chat module
+Users can communicate with other users (buyer and seller) or they can communicate in the community chatroom through the messaging system.
+Buying module
+Users can view a list of collectibles, buy collectibles, participate in auctions from the bidding module and get notification.
+Selling module
+Users can manage their selling collectibles by add, edit, delete, add auction from bidding module and get notification. 
+Bidding module
+Users can place bids, view a list of ongoing auctions and get updates of their bidding activities.
+Item Listing Management
+Sellers can add new collectibles items, edit and delete collectibles from their listing .
+Send notification
+System will send notification to users about bidding winner status, and chat messages.
+View list of collectibles
+Users can search their collectibles based on their own preferences.
+View list of Auction
+Users can view the ongoing and upcoming auctions for collectibles.
+Manage users
+Admins can manage users' accounts by add, edit or delete user accounts when needed. 
+Manage Collectibles
+Admin can monitor and manage all the collectibles listing and bidding activities when needed.
+
+
+
+
+3.4.2	Flowchart
+
+
+Figure 3.3 Flowchart of user login and register module
+		
+Figure 3.3 is a flowchart that shows the process of user authentication and navigation of the CollectorHub application. When users start the application, they are immediately faced with the first decision where the system asks whether the user has an account or not. In case, there is no account of users then they are further redirected to the Registration page where they can fill in his/her email address, password and all other relevant personal details. If an account exists, they go straight to the Login page to provide their credentials for purposes of identification.
+
+
+Figure 3.4 User Profile flowchart
+
+The flowchart used above depicts the process of management of user profiles. From the main page, the users are able to access profile details. The system shows the user profile information and the users can update the information. If they decide on that, they can change profile details which causes the display to update. If no changes are necessary, the process is over.
+
+Figure 3.5  Chat module flowchart
+
+The chat module flowchart presents the communication options as discussed within the framework of CollectorHub. Users can click on the chat option from the main page and the chat option will show the chat page. Users are then able to choose certain users to message each other about selling items.
+
+
+
+Figure 3.6 Buying module flowchart
+
+This flowchart is specifically on the buying process; the process begins with login and accessing the main page. The system suggests the items based on collectibles history of the user and shows the list of these items. They are able to select products, view more information, and make a purchase. If they are ready, they can advance to the checkout point else they can continue with the shopping. The last steps are order confirmation.
+
+
+Figure 3.7 Selling module add collectibles flowchart
+
+Figure 3.7 shows that how sellers can list new items by entering and confirming item details.
+
+Figure 3.8 Selling module create auction flowchart
+
+Figure 3.8 shows the auction creation process with specific auction parameters.
+
+Figure 3.9 Selling module edit selling collectibles flowchart
+
+Figure 3.9 shows how sellers can edit their listings. When the user has chosen an item to edit, the system shows the current information about this item. Sellers can modify the price, description, and categories of the selling items.
+
+Figure 3.10 selling module edit created auction flowchart
+
+Figure 3.10 shows how sellers can edit their listings. When the user has chosen an item to edit, the system shows the current information about this item. Sellers can modify the price, description, and characteristics of the auction, such as starting date and time, and the end date and time.
+
+
+Figure 3.11 selling module delete created selling collectibles flowchart
+
+Figure 3.11 shows how the deletion process is done for normal selling items. From the main page the sellers can see all their current listings and choose which ones to delete. A confirmation box helps sellers to avoid deleting listings by mistake.
+
+Figure 3.12 Selling module delete created auction flowchart
+
+Figures 3.12 shows how the deletion process is done for auctions. From the main page the sellers can see all their current listings and choose which ones to delete. A confirmation box helps sellers to avoid deleting listings by mistake. 
+
+Figure 3.13 Admin login flowchart
+
+Figure 3.13 shows how the admin login to the admin page for CollectorHub.
+
+3.4.3	Model Relationship Diagram (MRD)
+
+
+Figure 3.14 MRD for User
+
+In the “users” collection, the following fields of the users are shown in the table; “user_name”, “email”, “phone_number”, “password”, “user_type”, “register_date” and “preferences”. The user type is important in the identification of normal users and the administrators, which gives the later continued access to the application. The preference field saves the user’s collecting interests, which is used by the rule-based recommendation system.
+
+
+
+Figure 3.15  MRD for Collectibles
+
+The “collectibles” collection is intended to be an area that users can browse to look at items and an area that users can list items for sale. Every entry has basic fields including “item_name”, “category”, “listed_price”, “market_price” obtained from eBay API, “description”, “image_url”, “seller_id”, “status”, “item_condition”, and “listing_type”. The market price assists the sellers in placing affordable price offers while the listing type is categorized in to either a direct sale or an auction sale.
+
+
+Figure 3.16  MRD for Auction
+
+In the “auctions” collection it documents the bids with fields such as ‘bidder_id’, ‘item_id’, ‘bid_amount’, ‘timestamp’, ‘auction_status’, and ‘bid_time’ as well as the starting price of the item. The Roll back value for bid_time and timestamp field is very necessary to keep record of the time line of the bids made and to make the auctions fair. For a given auction, the auction_status field indicates if the auction is still ongoing, completed or has been terminated.
+
+
+Figure 3.17 MRD for Chat
+
+The “chats” collection enables interaction among the users with data under features including “sender_id”, “receiver_id”, “item_id”, “message“, “timestamp”, and “auction_id”. The auction_id field correlates discussions that are directly pertaining to auction items and the item_id ties general questions on items. This will allow users to haggle on the items and set the price from the comfort of the application.
+
+Figure 3.18  MRD for Notification
+
+Finally, the “notifications” collection controls system messages and events; “user_name” to indicate the recipient; “type” to organize the notification; “message” for the information displayed; “item_id” for related items; “timestamp” for chronological order; and “is_read” for the interaction of the user. This collection lets the users know involving auction updates, new messages, and the change of price of items that they are interested in.
+
+3.4.4	Interface Design
+
+Table 3.6 CollectorHub User Interface Design
+Interface Design
+Description 
+
+Login Page
+
+The Login page prompted users to input their email and password to access the application. If there is new user that doesn’t have account, they can navigate to the “sign up” for registration.
+
+Register Page
+
+The Register Page lets the users enter their essential information including name, email, phone number, and password. If they already have an account, they can navigate to the “log in here” to login to the application.
+
+
+
+User Main Page
+
+This is the homepage of CollectorHub. There will be an option for the user whether they want to be a buyer or seller just by clicking the “Buyer” and “ Seller” button to switch mode. At this page, the user will see a list of items that are selling and in auction. They can see more detail of the items by clicking them.  
+
+User Profile Page
+
+The user profile interface will show the details that has been filled during registration. User can edit their personal information and log out their account.
+
+User Edit Profile Page
+
+Edit profile page will show after user clicked edit button from profile page. User can change their personal information and save change.  
+
+User(Buyer) Shop Selling Items
+
+User can see selling items from this page. There is search bar for user to search their preferred items and below it there are button that can switch between shop item and auction. If the user want to know more about the items they can just clicking “see details”. 
+
+User(Buyer) Shop Item Details
+
+After clicking “see details”, user will navigate to this page where more information about the selected items will show. User can navigate to chat seller or add to cart to buy it.
+
+User(Buyer) Auction Page
+
+Auction page will show all the ongoing bidding activities. If user want to know more details about the auction, they can click the “see details” inside the box.
+
+User(Buyer) Auction Details
+
+After clicking “see details”, user will navigate to this page where more information about the auction will be displayed. Users can navigate to chat seller or add to place their bid.
+
+User(Buyer) Notification
+
+The Notification Page will display all the purchases and auction activities to notify user.
+
+User Chat Page
+
+Chat page is for user to communicate with other user among this application. Users also can join community chat to communicate with the specific community to share their knowledge and information about being a collector.
+
+User(Seller) Seller Page
+
+If a user want to be a seller they can switch to the seller mode and will navigate to seller page. Seller homepage will display all their created selling items and auction activities. Seller can edit and delete the items.
+
+User(Seller) Create Page
+
+Create Page for sellers who want to sell their collectibles. Seller have two option either sell at a fixed price or make an auction. 
+
+User(Seller) Create Selling Item
+
+This is Create Selling Item Page for sellers who want to sell at a fixed price. Seller can insert image, description, price and choose category for their collectibles.
+
+User(Seller) Create Auction
+
+This is Create Auction Page for sellers who want to make an auction. Sellers can insert image, description, starting price, duration and choose categories for their collectibles.
+
+User(Seller) View Selling Items Details
+
+Seller can view their posted selling collectibles details. It has flexibility to edit and delete the collectibles. 
+
+User(Seller) View Auction Details
+
+Seller can view their posted auction collectibles activities and details. It has flexibility to edit and delete the auction. 
+
+User(Seller) Edit Selling Item
+
+Seller can edit their posted collectibles details whenever they want. 
+
+User(Seller) Edit Auction
+
+Edit Auction Page for seller to edit posted auction based on their preferences. Seller can edit including image, categories, description, duration and starting price.
+
+User(Seller) Notification
+
+Notification page will show all the purchases from their selling items and auction in the application. Seller can know who won the auction. 
+
+User(Seller) Notification Auction
+
+Notification Auction Page will display the selling item and buyer details. Seller can can chat with buyer by navigating to the “Chat Buyer” button.
+
+User(Seller) Notification Selling Item
+
+Notification Auction Page will display the auction item, highest bid price and winner details. Seller can can chat winner of the auction by navigating to the “Chat Winner” button.
+
+Admin Page
+
+After admin login to the application, Admin Homepage will be displayed. In this page, admin can monitor all the activities of CollectorHub. Admin can manage users, selling items and auction.
+
+Admin Manage User Profile
+
+This page gives admin the flexibility to view, edit or delete profile users.
+
+Admin Manage Selling Items
+
+Admin can manage selling items in this page. Admin have the flexibility to view, edit and delete items that have been posted by sellers. 
+
+Admin Manage Auctions
+
+Admin can manage auction in this page. Admin have the flexibility to view, edit and delete auctions that have been posted by sellers. 
+
+
+3.4.5	System Architecture
+
+Figure 3.19  System Architecture 
+
+Figure 3. shows the connection between three main components: Buyers/Sellers, eBay API, Server, and Firebase Database. It uses several pathways that interact with each other in order to accomplish its functions. When a seller uploads a collectible item, he or she can use the eBay API integration that pulls current market prices of similar items. The data is then saved in the Firebase Database. Customers can browse through the items available with the system using the stored market data to offer price comparisons as well as recommendations.
+
+Firebase Database is used as the database with the functions of storing user information, items, messages, and bidding data. Any action that involves a user, whether a buyer, a seller or an administrator is handled by the server and updated in the Firebase Database in real-time. The admin interface is responsible for the control of the platform and for the account and transactional surveillance. The whole system is tied to the internet so that data could be updated in real time and all the components of the system can communicate with each other. Finally, the API of eBay is used to achieve correct and current prices for the collectible items.
+3.5	Application Development
+
+In this phase, the importance of the development is to ensure that the applications run smoothly by implementing codes and technologies. The enhancement features include Firebase database, Real-Time Bidding, in-app chat and eBay API for the pricing guide based on the information obtained in Chapter 2, the literature review. The implementation focuses on establishing a secure marketplace where collectors can sell, purchase, and participate in auctions for collectible goods.
+
+3.5.1	Module 
+
+For the CollectorHub, there are six main modules: the login module, the buyer module, the seller module, the bidding module, and the market price module, and the admin module is the user control module. The specifications of the different modules are highlighted in Table 3.7 to Table 3.10. These modules are built with the help of FLUTTER framework and Dart programming language for front end and Firebase for back end services, eBay API for market price.
+
+Table 3.7  Login module	
+Module ID
+Module
+Description
+Login01
+Login 
+User can login with registered information
+Login02
+Register 
+User can register new account 
+
+
+Table 3.8  Buyer module
+Module ID
+Module
+Description
+Buyer01 
+Homepage
+Displaying all the selling items and auction posted by seller
+Buyer02
+Selling items
+User can see more details of the selling items and place order
+Buyer03 
+Bidding
+User can see bidding activities and place bid
+Buyer04 
+Profile
+User can view all their profile details and have the ability to edit and logout anytime.
+Buyer05 
+Chat
+User can communicate with other users and can join community chat.
+Buyer06 
+Recommendation
+User can set their preferred category based on their preferences.
+Buyer07 
+Notification
+User will be notified about bidding activities and purchase items.
+
+
+Table 3.9 Seller module
+Module ID
+Module
+Description
+Seller01
+Homepage
+User can see all created selling items and auction
+Seller02
+Create 
+User have an option to create a selling items or auction.
+Seller03
+Market price
+User can check and set the current price market of that item.
+Seller04
+Auction setup
+User create, edit and delete auction.
+Seller05
+Chat 
+User can communicate with other users and can join community chat.
+Seller06
+Notification 
+User will be notified about bidding activities and purchases.
+
+
+Table 3.10  Admin module
+Module ID
+Module
+Description
+Admin01
+Admin page
+Admin can monitor overall marketplace activity.
+Admin01
+User management
+Admin can monitor overall marketplace activity.
+Admin01
+Items management
+Admin can manage users by edit and delete user.
+Admin01
+Auction management
+Admin can manage auction activities
+
+
+
+3.5.2	Selling items using Firebase
+
+Firebase Firestore Database is crucial for the selling items feature within the CollectorHub mobile application. The firebaseare responsible for the listings of collectible items and their administration. The next step for the application to perform selling operations is to organize Firestore data structure and operations correctly. The initialization steps have to be performed to allow the application to perform operations such as creating, reading, updating or deleting item listings in the Firestore Database.
+
+Figure 3.20  Initialization pseudocode
+
+To add a new collectible listing into the Firestore database, the method called ‘set()’ is used to need details of the every item in order to store it. If the specified item is found, the method will modify the information; otherwise, it will create a new record.
+
+
+3.5.3	Real-Time Bidding(RTB) using Firebase
+
+The Real Time Bidding(RTB) system in CollectorHub store their auction processes and bids into Firebase Firestore. The structure of the database guarantees the updates of bid data in real time and synchronization of the same from one user to the other. The bidding system needs methods of placing, updating and managing bids in real-time to meet the bidding system needs.
+
+
+
+Figure 3.21  Place bid Pseudocode
+
+The placeBid method inserts a new document in the ‘bids’ collection in Firestore with details of the bidder and the bid amount they offered. It employs FieldValue.serverTimestamp() to save the current server timestamp.
+
+
+Figure 3.22  Update bid amount Pseudocode
+
+A bid is a document in the collection ‘bids’ and the updateBid method updates the 'bidAmount’ field in the bid document which corresponds to the bid document specified in the bid ID.
+
+3.5.4	Chat integration using Firebase
+
+In the case of the CollectorHub mobile application, the chat feature is integrated into the application using Firebase Firestore to allow real-time conversations between users and the community. The chat system needs well-organized database that will help to store and sort the messages and conversations also the interactions between the users. For the purpose of implementing the chat feature, particular collections and documents are created to store the information related to chat and to control the sending of the messages.
+
+
+Figure 3.23  Sending messages Pseudocode
+
+Figure 3.23 For the purpose of sending messages in the conversation, the application employs subcollection to store individual messages.
+
+
+Figure 3.24 Update messages Pseudocode
+
+This implementation guarantees the delivery of the instant messages and real time updates to the two parties in the conversation thus improving the collectors ‘ communication experience in the marketplace.
+
+3.5.5	Implementing market price using eBay API 
+
+The ebay API integration is important in providing correct market value for the collectible goods. This feature assists sellers to offer the right prices while buyers are in a position to make the right decisions. The implementation demands accurate API authentication and data processing to obtain and display the current market value of the collectibles.
+
+
+Figure 3.25  eBay API connection pseudocode
+
+The EbayApiService class is the class that deals with connecting to eBay’s API. It utilizes authentication headers and builds correct URL queries for searching for similar items. The getMarketPrice method accepts the item name and the category to guarantee the correct comparison of prices.
+
+
+Figure 3.26   Store price pseudocode
+
+While creating a new listing the application downloads the current market price from eBay and saves it in Firestore along with other details of the listing. This assists in keeping a record of the prices at the time that new equities where listed and also helps in analysing the trends of prices.
+
+Figure 3.27 Store fetched eBay API Pseudocode
+
+The PriceCache implementation mitigates the number of API calls made by the system through caching of the prices within the cache memory. It is beneficial in that it stops over usage of the API while at the same time providing relatively up to date price information. The cache expires on its own after a certain period, so prices are not too outdated.
+
+3.5.6	Rule-Based Recommendation System Implementation
+
+In the CollectorHub Mobile application, a rule-based recommendation system is used to improve user satisfaction by recommending items that a collector may be interested in. This system employs certain predetermined conditions to sort and rank items that are to be presented to the users, which increases the effectiveness of finding collectibles.
+
+
+Figure 3.28  Rule-based structure pseudocode
+
+The code uses an approach of assigning points to each item as per the degree of its relevance to the user’s preferences. For instance, if an item belongs to the category of interest for the user, then it is assigned 5 points. Anything that falls within the user’s average spending limit is given 3 points. The second reason is that the recommendations depend on the experience of the collector; novice collectors watch more ordinary items, while experienced ones watch more unique items.
+
+
+
+3.6	Testing 
+
+The testing phase is also crucial in the development process since it provides an evaluation of the system or application’s performance. The conducted tests, such as the accuracy test and the functionality test, are designed to assess the viability of the CollectorHub project before going to the last phase.
+
+3.6.1	Accuracy Testing
+
+The accuracy testing is done once the functionalities are complete and consists of three aspects, which are real time bidding, integration of market prices, and the rule based recommendation system. For real-time bidding, it checks whether the test shows the correct bid and whether the auction duration is correct. The market price accuracy test confirms the quality of integrated price data from eBay API. The recommendation system test measures the level of compliance to the user’s preference and collection behavior.
+
+Table 3.11  Accuracy Testing checklist
+Accuracy ID
+Pass/Fail
+Accuracy01                                                                                                                                                                                   
+
+
+
+3.6.2	Functionality Testing
+
+The process of functionality testing was performed to check whether all the components of each module in the CollectorHub application are functioning correctly and there is no error. The testing was to check whether CollectorHub was working as required and to check for any flaws within the application.
+
+Table 3.12 Accuracy testing checklist
+Module ID
+Module 
+Pass/Fail
+Login01
+
+
+3.7	Documentation 
+
+Documentation is the last step of the CollectorHub framework where all the collected
+information as well as the analyses made during the project are documented. When documentation is done the final report is done for presentation. The conclusion of the research provides a basis for evaluating the extent to which the project objectives have been met.
+
+3.7.1	Project Milestone
+
+Table 3.13  Documentation 		
+Phase 
+Activities 
+Duration 
+Requirement Analysis
+Problem statement
+Identify the objective, scope of the project, and significance
+Chapter 1
+Chapter 2
+Literature review 
+Illustrate Use Case
+
+
+Application Design
+Design the flowchart for each module
+Design Model Relationship Diagram
+Design user interface
+Chapter 3
+
+
+Application Development
+Develop the interface of the mobile application
+Develop the modules for the application
+Implement Firebase Cloud Firestore database
+Integrate eBay API for market price data
+Develop the real-time bidding system
+Implement rule-based recommendation system
+Develop chat functionality
+
+
+Testing 
+Conduct functionality testing for all modules
+Perform accuracy testing for:
+Real-time Bidding system
+Market price integration
+Chat integration
+Selling items 
+Buyer
+Seller
+Admin
+Admin management 
+
+
+Documentation 
+Document the overall explanation of the project development
+Compilation of the information on each phase
+Analysis of testing results
+Prepare final documentation
+Complete project report
+
+
+
+
+3.8	Chapter summary
+
+The project framework occupies the heart of the vision since it offers a coherent plan concerning the detailed development stage in distinct phases. Every phase is explained in detail to show the direction towards the achievement of the project objectives and goals. The CollectorHub framework comprises five crucial steps: need assessment, system specification, system implementation, system validation, and systems documentation. This chapter focuses on the use of method and techniques that were identified in the first phase of the study which was the research and literature review. The focus is laid on the problem statement of the project, goal setting and creation of the mobile application which will be useful for collectors and containing the functions of real-time bidding, integration of the market prices with the help of eBay API and the rule-based recommendation system.
+
+During the design phase, the application’s design is based on the templates of the existing marketplaces while emphasizing the aspects relevant to collectors. Flutter is used in development, Firebase for some services, and the layout is mobile first. The next phase is the development phase in which the various methods and techniques that shall incorporate the system include the real-time bidding functionality, the incorporation of the eBay API to provide market price data, the rule based recommendation system that shall enhance the personalized experience of the users of the system. After these phases, testing is performed to check the efficiency of the mobile application, especially on the bidding system, accuracy of prices displayed, and recommendation of the items. The documentation phase then gathers all the information collected and put them into one document for future use and once again, the integration of the phases within the framework further emphasizes the importance of the framework in creating a niche market for collectors.
+
+
+
+REFERENCES 
+
+Hughes, J. E. (2022). Demand for Rarity: Evidence from a Collectible Good*. Journal of Industrial Economics, 70(1), 147–167. https://doi.org/10.1111/joie.12262
+(PDF) to buy or not to buy: The Toy Collector-Scalper relationship explored. (n.d.). https://www.researchgate.net/publication/373639896_To_Buy_or_Not_to_Buy_The_Toy_Collector-Scalper_Relationship_Explored
+Kleine, J., Peschke, T., & Wagner, N. (2024). Beyond financial wealth: The experienced utility of collectibles. The Quarterly Review of Economics and Finance, 97, 101865. https://doi.org/10.1016/j.qref.2024.101865
+Veale, M., & Borgesius, F. Z. (2022). Adtech and Real-Time Bidding under European Data Protection Law. German Law Journal, 23(2), 226–256. https://doi.org/10.1017/glj.2022.18
+Waisman, C., Nair, H. S., & Carrion, C. (2024). Online Causal inference for advertising in Real-Time bidding auctions. Marketing Science. https://doi.org/10.1287/mksc.2022.0406
+SQLite: Past, present, and future. (n.d.-b). 
+https://www.vldb.org/pvldb/vol15/p3535-gaffney.pdf
+(PDF) Mobile Database Technology and main memory database systems. (n.d.-a).
+https://www.researchgate.net/publication/348327630_Mobile_Database_Technology_and_Main_Memory_Database_Systems
+FIREBASE -OVERVIEW AND USAGE (P Chougale) 2021
+https://www.researchgate.net/profile/Anil-Gaikwad-12/publication/362539877_FIREBASE_-OVERVIEW_AND_USAGE/links/62efc738505511283e9a5318/FIREBASE-OVERVIEW-AND-USAGE.pdf
+Gaffney, K. P., Prammer, M., Brasfield, L., Hipp, D. R., Kennedy, D., & Patel, J. M. (2022).
+SQLite. Proceedings of the VLDB Endowment, 15(12), 3535–3547. https://doi.org/10.14778/3554821.3554842 
+ Dahunsi, F., Joseph, A., Sarumi, O., & Obe, O. (2021). Database management system for mobile
+crowdsourcing applications. Nigerian Journal of Technology, 40(4), 713–727. https://doi.org/10.4314/njt.v40i4.18
+Sudiartha, I. K. G., Indrayana, I. N. E., Suasnawa, I. W., Asri, S. A., & Sunu, P. W. (2020b). Data structure comparison between MySQL Relational Database and Firebase Database NOSQL on mobile based tourist tracking application. Journal of Physics Conference Series, 1569, 032092. https://doi.org/10.1088/1742-6596/1569/3/032092
+Gorchakov, A. V., Demidova, L. A., & Sovietov, P. N. (2024). A Rule-Based algorithm and its specializations for measuring the complexity of software in educational digital environments. Computers, 13(3), 75. https://doi.org/10.3390/computers13030075
+Javed, U., Shaukat, K., Hameed, I. A., Iqbal, F., Alam, T. M., & Luo, S. (n.d.). A review of
+content-based and context-based recommendation systems. International Journal of Emerging Technologies in Learning (iJET). https://online-journals.org/index.php/i-jet/article/view/18851
+Ko, H., Lee, S., Park, Y., & Choi, A. (2022). A survey of recommendation systems: recommendation models, techniques, and application fields. Electronics, 11(1), 141. https://doi.org/10.3390/electronics11010141
+Putri, A. A., Wardhana, A., & Pradana, M. (2021). The Influence of Service Quality and Consumer Trust on Consumer Loyalty of Carousel Apps. The Influence of Service Quality and Consumer Trust on Consumer Loyalty of Carousel Apps. https://doi.org/10.46254/sa02.20210810 
+Altaweel, M., & Hadjitofi, T. G. (2020). The sale of heritage on eBay: Market trends and cultural value. Big Data & Society, 7(2), 205395172096886. https://doi.org/10.1177/2053951720968865 
+Ojeda, A., Méndez, A., Valera, J., & Reyes, J. (2021). THE USEFULNESS OF APIs FOR NEW BUSINESS CREATION AND ENTERPRISE INNOVATION. Issues in Information Systems. https://doi.org/10.48009/1_iis_2021_255-261
+
+
+
+
